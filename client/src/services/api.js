@@ -182,4 +182,48 @@ export const agentApi = {
     }
 };
 
+// ============ WebRTC APIs ============
+
+export const webrtcApi = {
+    // Create WebRTC session
+    createSession: async (customerUserId, agentId, customerId = null) => {
+        const response = await api.post('/webrtc/sessions', {
+            customerUserId,
+            agentId,
+            customerId
+        });
+        return response.data;
+    },
+
+    // Get session details
+    getSession: async (sessionId) => {
+        const response = await api.get(`/webrtc/sessions/${sessionId}`);
+        return response.data;
+    },
+
+    // Update session status
+    updateStatus: async (sessionId, status) => {
+        const response = await api.put(`/webrtc/sessions/${sessionId}/status`, { status });
+        return response.data;
+    },
+
+    // Submit transcript for processing
+    submitTranscript: async (sessionId, transcript) => {
+        const response = await api.post(`/webrtc/sessions/${sessionId}/transcript`, { transcript });
+        return response.data;
+    },
+
+    // Get processed summary
+    getSummary: async (sessionId) => {
+        const response = await api.get(`/webrtc/sessions/${sessionId}/summary`);
+        return response.data;
+    },
+
+    // Get pending calls for agent
+    getPendingCalls: async (agentId) => {
+        const response = await api.get(`/webrtc/sessions/pending/${agentId}`);
+        return response.data;
+    }
+};
+
 export default api;

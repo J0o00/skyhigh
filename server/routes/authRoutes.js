@@ -228,4 +228,24 @@ router.get('/users', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/auth/agents
+ * Get available agents (users with role=agent) for call routing
+ */
+router.get('/agents', async (req, res) => {
+    try {
+        const agents = await User.find({ role: 'agent', isActive: true })
+            .select('-password')
+            .sort({ lastActive: -1 });
+
+        res.json({
+            success: true,
+            data: agents
+        });
+    } catch (error) {
+        console.error('Get agents error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;

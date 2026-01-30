@@ -127,6 +127,20 @@ function AgentDashboard() {
                     🎧 Agent Portal
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <button
+                        onClick={() => navigate('/agent/webrtc-call')}
+                        style={{
+                            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                            border: 'none',
+                            color: 'white',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontWeight: 500
+                        }}
+                    >
+                        🎧 Call Center
+                    </button>
                     <span style={{ color: '#94a3b8' }}>{user?.name}</span>
                     <button
                         onClick={() => { logout(); navigate('/'); }}
