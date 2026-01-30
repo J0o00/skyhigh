@@ -16,10 +16,12 @@ import ClientDashboard from './pages/ClientDashboard';
 import ClientChatPage from './pages/ClientChatPage';
 import ClientEmailPage from './pages/ClientEmailPage';
 import ClientCallPage from './pages/ClientCallPage';
+import CustomerWebRTCCall from './pages/CustomerWebRTCCall';
 
 // Agent Pages
 import AgentLogin from './pages/AgentLogin';
 import AgentDashboard from './pages/AgentDashboard';
+import AgentWebRTCCall from './pages/AgentWebRTCCall';
 
 // Admin Pages
 import AdminLogin from './pages/AdminLogin';
@@ -109,6 +111,11 @@ function App() {
                     <ClientCallPage />
                 </ProtectedRoute>
             } />
+            <Route path="/client/webrtc-call" element={
+                <ProtectedRoute allowedRoles={['client']}>
+                    <CustomerWebRTCCall />
+                </ProtectedRoute>
+            } />
 
             {/* Agent Routes */}
             <Route path="/agent/login" element={
@@ -119,6 +126,11 @@ function App() {
             <Route path="/agent/dashboard" element={
                 <ProtectedRoute allowedRoles={['agent']}>
                     <AgentDashboard />
+                </ProtectedRoute>
+            } />
+            <Route path="/agent/webrtc-call" element={
+                <ProtectedRoute allowedRoles={['agent']}>
+                    <AgentWebRTCCall />
                 </ProtectedRoute>
             } />
 

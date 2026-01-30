@@ -39,9 +39,17 @@ function ClientDashboard() {
             id: 'call',
             title: 'Voice Call',
             icon: '📞',
-            description: 'Start a voice call with support',
+            description: 'Simulated voice call with TTS',
             gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             path: '/client/call'
+        },
+        {
+            id: 'webrtc',
+            title: 'WebRTC Call',
+            icon: '🎧',
+            description: 'Real-time voice call with live transcription',
+            gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            path: '/client/webrtc-call'
         }
     ];
 

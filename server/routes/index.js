@@ -12,6 +12,7 @@ const agents = require('./agents');
 const auth = require('./authRoutes');
 const client = require('./clientRoutes');
 const agentRoutes = require('./agentRoutes');
+const webrtc = require('./webrtcRoutes');
 
 module.exports = {
     customers,
@@ -21,5 +22,6 @@ module.exports = {
     agents,
     auth,
     client,
-    agentRoutes
+    agentRoutes,
+    webrtc
 };

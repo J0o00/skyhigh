@@ -116,10 +116,123 @@ function initializeSocket(io) {
             });
         });
 
+        // ============ WebRTC Signaling Events ============
+
+        /**
+         * Join a WebRTC call room
+         */
+        socket.on('webrtc:join', (data) => {
+            const { sessionId, role, userId } = data;
+            socket.join(`webrtc_${sessionId}`);
+            socket.webrtcSession = { sessionId, role, userId };
+            console.log(`🎥 ${role} ${userId} joined WebRTC room ${sessionId}`);
+
+            // Notify others in the room
+            socket.to(`webrtc_${sessionId}`).emit('webrtc:peer-joined', {
+                role,
+                userId,
+                timestamp: new Date()
+            });
+        });
+
+        /**
+         * WebRTC offer (from caller)
+         */
+        socket.on('webrtc:offer', (data) => {
+            const { sessionId, offer, from } = data;
+            console.log(`📡 WebRTC offer from ${from} in session ${sessionId}`);
+            socket.to(`webrtc_${sessionId}`).emit('webrtc:offer', {
+                offer,
+                from,
+                timestamp: new Date()
+            });
+        });
+
+        /**
+         * WebRTC answer (from callee)
+         */
+        socket.on('webrtc:answer', (data) => {
+            const { sessionId, answer, from } = data;
+            console.log(`📡 WebRTC answer from ${from} in session ${sessionId}`);
+            socket.to(`webrtc_${sessionId}`).emit('webrtc:answer', {
+                answer,
+                from,
+                timestamp: new Date()
+            });
+        });
+
+        /**
+         * ICE candidate exchange
+         */
+        socket.on('webrtc:ice-candidate', (data) => {
+            const { sessionId, candidate, from } = data;
+            socket.to(`webrtc_${sessionId}`).emit('webrtc:ice-candidate', {
+                candidate,
+                from,
+                timestamp: new Date()
+            });
+        });
+
+        /**
+         * Call accepted by agent
+         */
+        socket.on('webrtc:call-accept', (data) => {
+            const { sessionId, agentId } = data;
+            console.log(`✅ Agent ${agentId} accepted call ${sessionId}`);
+            io.to(`webrtc_${sessionId}`).emit('webrtc:call-accepted', {
+                agentId,
+                timestamp: new Date()
+            });
+        });
+
+        /**
+         * Call rejected by agent
+         */
+        socket.on('webrtc:call-reject', (data) => {
+            const { sessionId, agentId, reason } = data;
+            console.log(`❌ Agent ${agentId} rejected call ${sessionId}: ${reason}`);
+            io.to(`webrtc_${sessionId}`).emit('webrtc:call-rejected', {
+                agentId,
+                reason,
+                timestamp: new Date()
+            });
+        });
+
+        /**
+         * Call ended by either party
+         */
+        socket.on('webrtc:call-end', (data) => {
+            const { sessionId, endedBy } = data;
+            console.log(`📵 WebRTC call ${sessionId} ended by ${endedBy}`);
+            io.to(`webrtc_${sessionId}`).emit('webrtc:call-ended', {
+                endedBy,
+                timestamp: new Date()
+            });
+        });
+
+        /**
+         * Leave WebRTC room
+         */
+        socket.on('webrtc:leave', (data) => {
+            const { sessionId } = data;
+            socket.leave(`webrtc_${sessionId}`);
+            socket.to(`webrtc_${sessionId}`).emit('webrtc:peer-left', {
+                timestamp: new Date()
+            });
+        });
+
         /**
          * Handle disconnect
          */
         socket.on('disconnect', () => {
+            // If in a WebRTC session, notify peers
+            if (socket.webrtcSession) {
+                const { sessionId, role } = socket.webrtcSession;
+                socket.to(`webrtc_${sessionId}`).emit('webrtc:peer-disconnected', {
+                    role,
+                    timestamp: new Date()
+                });
+            }
             console.log(`🔌 Socket disconnected: ${socket.id}`);
         });
     });

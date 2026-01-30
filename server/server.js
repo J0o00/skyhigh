@@ -100,6 +100,7 @@ app.use('/api/agents', routes.agents);
 app.use('/api/auth', routes.auth);
 app.use('/api/client', routes.client);
 app.use('/api/agent', routes.agentRoutes);
+app.use('/api/webrtc', routes.webrtc);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
