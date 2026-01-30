@@ -75,7 +75,7 @@ const interactionSchema = new mongoose.Schema({
 
     intent: {
         type: String,
-        enum: ['purchase', 'inquiry', 'complaint', 'support', 'follow-up', 'unknown'],
+        enum: ['purchase', 'inquiry', 'complaint', 'support', 'follow-up', 'general', 'appreciation', 'unknown'],
         default: 'unknown'
     },
 

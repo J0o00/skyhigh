@@ -126,7 +126,7 @@ ConversaIQ/
    npm install
    ```
 
-6. **Start the servers**
+6. **Start the servers**ok
 
    Terminal 1 (Backend):
    ```bash
@@ -189,6 +189,46 @@ After seeding, you can log in with:
 | `call:incoming` | Server → Client | New incoming call notification |
 | `call:ended` | Server → Client | Call ended, trigger summary |
 | `customer:updated` | Server → Client | Customer profile changed |
+
+## 🔌 Frontend Independence
+
+This backend is **API-first and frontend-agnostic**. Any frontend framework can be swapped in without backend changes.
+
+### V1 API (Recommended)
+All new integrations should use the versioned `/api/v1/` endpoints:
+
+```
+GET  /api/v1/customers          # List customers
+GET  /api/v1/customers/:id      # Get customer
+POST /api/v1/customers          # Create customer
+GET  /api/v1/customers/:id/context  # Full context for agents
+
+POST /api/v1/interactions       # Ingest email/chat/call
+POST /api/v1/calls/incoming     # Handle incoming call
+GET  /api/v1/agents/inbox       # Agent inbox
+
+GET  /api/v1/intelligence/score/:id         # Potential score
+GET  /api/v1/intelligence/suggestions/:id   # Agent suggestions
+POST /api/v1/intelligence/analyze           # Analyze text
+```
+
+### Response Format
+All responses follow this standard:
+```json
+{
+  "success": true,
+  "data": { ... },
+  "meta": { "timestamp": "...", "version": "v1" }
+}
+```
+
+### Connecting a New Frontend
+1. Set `ALLOWED_ORIGINS` in `.env` to include your frontend URL
+2. Import API client or use fetch with base URL `http://localhost:5000/api/v1`
+3. Handle responses using the standard format
+
+See [API_DOCS.md](server/API_DOCS.md) for complete documentation.
+
 
 ## 🎨 Design System
 

@@ -137,7 +137,7 @@ function startPolling(io) {
 }
 
 /**
- * Check inbox for new unread emails
+ * Check inbox for ALL emails (read and unread)
  */
 function checkForNewEmails(io) {
     return new Promise((resolve, reject) => {
@@ -148,17 +148,17 @@ function checkForNewEmails(io) {
 
         console.log('📧 Opening INBOX to check for emails...');
 
-        imapClient.openBox('INBOX', false, (err, box) => {
+        imapClient.openBox('INBOX', true, (err, box) => {
             if (err) {
                 console.error('📧 Error opening INBOX:', err.message);
                 reject(err);
                 return;
             }
 
-            console.log(`📧 INBOX opened. Total messages: ${box.messages.total}, Unseen: ${box.messages.unseen}`);
+            console.log(`📧 INBOX opened. Total messages: ${box.messages.total}`);
 
-            // Search for ALL unseen emails (no date filter)
-            imapClient.search(['UNSEEN'], async (err, results) => {
+            // Search for ALL emails (not just unseen)
+            imapClient.search(['ALL'], async (err, results) => {
                 if (err) {
                     console.error('📧 Search error:', err.message);
                     reject(err);
@@ -168,16 +168,16 @@ function checkForNewEmails(io) {
                 console.log(`📧 IMAP search returned ${results?.length || 0} results`);
 
                 if (!results || results.length === 0) {
-                    console.log('📧 No unread emails found');
+                    console.log('📧 No emails found');
                     resolve([]);
                     return;
                 }
 
-                // Limit to most recent 20 emails per poll to avoid overload
+                // Get most recent 20 emails
                 const recentResults = results.slice(-20);
-                console.log(`📧 Found ${results.length} unread email(s), processing ${recentResults.length}`);
+                console.log(`📧 Found ${results.length} email(s), processing ${recentResults.length} most recent`);
 
-                const fetch = imapClient.fetch(recentResults, { bodies: '', markSeen: true });
+                const fetch = imapClient.fetch(recentResults, { bodies: '' });
                 const emails = [];
 
                 fetch.on('message', (msg, seqno) => {

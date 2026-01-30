@@ -125,7 +125,7 @@ const customerSchema = new mongoose.Schema({
     // Current Intent (Rule-based detection, agent-correctable)
     currentIntent: {
         type: String,
-        enum: ['purchase', 'inquiry', 'complaint', 'support', 'follow-up', 'unknown'],
+        enum: ['purchase', 'inquiry', 'complaint', 'support', 'follow-up', 'general', 'appreciation', 'unknown'],
         default: 'unknown'
     },
     intentConfidence: {

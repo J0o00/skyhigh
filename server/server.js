@@ -38,9 +38,25 @@ const io = new Server(server, {
 app.set('io', io);
 
 // Middleware
+// CORS configuration - supports multiple origins for frontend independence
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || 'http://localhost:5173')
+    .split(',')
+    .map(origin => origin.trim());
+
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    credentials: true
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            callback(null, true);
+        } else {
+            callback(null, true); // Allow all in development
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -91,7 +107,17 @@ app.get('/api/email/check', async (req, res) => {
     }
 });
 
-// API Routes
+// V1 API Routes with standardized responses
+const v1Routes = require('./routes/v1');
+const { apiResponseMiddleware } = require('./middleware/apiResponse');
+
+// Apply API response middleware to all /api routes
+app.use('/api', apiResponseMiddleware);
+
+// V1 API - Frontend-agnostic, versioned endpoints
+app.use('/api/v1', v1Routes);
+
+// Legacy API Routes (for backward compatibility with existing frontend)
 app.use('/api/customers', routes.customers);
 app.use('/api/call-event', routes.callEvents);
 app.use('/api/interactions', routes.interactions);
