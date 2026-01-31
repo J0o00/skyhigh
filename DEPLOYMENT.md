@@ -1,173 +1,200 @@
-# Deployment Instructions for ConversaIQ
+# Deployment Instructions for ConversaIQ (Railway)
 
 ## Prerequisites
 
-1. **GitHub Repository**: Push your code to GitHub
-2. **Render Account**: Sign up at [render.com](https://render.com)
-3. **MongoDB Atlas** (Recommended): Set up a free MongoDB cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas)
+1. **GitHub Repository**: Your code is already pushed to GitHub ✅
+2. **Railway Account**: Sign up at [railway.app](https://railway.app) (No credit card required!)
+3. **MongoDB Atlas** (Free tier): [mongodb.com/atlas](https://www.mongodb.com/atlas)
 
 ---
 
-## Backend Deployment (Render)
+## Backend Deployment (Railway)
 
-### Option 1: Using Render Blueprint (Automated)
+### Step 1: Create MongoDB Database (MongoDB Atlas)
 
-1. **Push Code to GitHub**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
+1. Go to [MongoDB Atlas](https://www.mongodb.com/atlas)
+2. Create a **free M0 cluster**
+3. Create a database user (username + password)
+4. **Network Access**: Add IP `0.0.0.0/0` (allow from anywhere)
+5. Click **Connect** → **Connect your application**
+6. Copy the connection string (looks like: `mongodb+srv://user:pass@cluster.mongodb.net/conversaiq`)
+
+### Step 2: Deploy Backend to Railway
+
+1. **Go to Railway Dashboard**: [railway.app/dashboard](https://railway.app/dashboard)
+
+2. **Create New Project**:
+   - Click **"New Project"**
+   - Select **"Deploy from GitHub repo"**
+   - Connect your GitHub account if not connected
+   - Select your repository
+
+3. **Configure Service**:
+   - Railway will auto-detect Node.js
+   - **Root Directory**: Set to `server`
+   - **Start Command**: `npm start` (should auto-detect)
+   - **Build Command**: `npm install` (should auto-detect)
+
+4. **Add Environment Variables**:
+   Click on your service → **Variables** tab → Add these:
+   
+   ```
+   NODE_ENV=production
+   MONGODB_URI=<your-mongodb-atlas-connection-string>
+   PORT=$PORT
+   CLIENT_URL=<will-set-after-frontend-deployment>
+   ALLOWED_ORIGINS=<will-set-after-frontend-deployment>
+   JWT_SECRET=conversaiq-secure-secret-2026
+   IMAP_HOST=imap.gmail.com
+   IMAP_PORT=993
+   IMAP_USER=conversaliq@gmail.com
+   IMAP_PASSWORD=fijxvzvzxzkrqgjz
+   IMAP_POLL_INTERVAL=60000
    ```
 
-2. **Deploy from Render Dashboard**
-   - Go to [Render Dashboard](https://dashboard.render.com)
-   - Click "New +" → "Blueprint"
-   - Connect your GitHub repository
-   - Select the `conversaiq` repository
-   - Render will auto-detect `render.yaml` and configure everything
-
-3. **Set Environment Variables** (in Render dashboard)
-   - `MONGODB_URI`: Your MongoDB Atlas connection string
-   - `CLIENT_URL`: Will be set after frontend deployment
-   - `ALLOWED_ORIGINS`: Same as CLIENT_URL
-   - `IMAP_USER`: conversaliq@gmail.com
-   - `IMAP_PASSWORD`: fijxvzvzxzkrqgjz
-
-### Option 2: Manual Setup
-
-1. **Create New Web Service**
-   - Dashboard → "New +" → "Web Service"
-   - Connect GitHub repository
-   - **Root Directory**: `server`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Environment**: Node
-
-2. **Add Environment Variables** (same as above)
-
-3. **Deploy** - Render will build and deploy automatically
+5. **Deploy**:
+   - Railway will automatically deploy
+   - Wait for deployment to complete
+   - Copy your Railway URL (looks like: `https://conversaiq-backend-production.up.railway.app`)
 
 ---
 
-## Frontend Deployment (Vercel - Recommended)
+## Frontend Deployment (Vercel)
 
-### Why Vercel?
-- Better for static React apps
-- Automatic HTTPS
-- Global CDN
-- Free tier is generous
+### Step 1: Install Vercel CLI
 
-### Steps:
+```bash
+npm install -g vercel
+```
 
-1. **Install Vercel CLI**
-   ```bash
-   npm install -g vercel
-   ```
+### Step 2: Deploy Frontend
 
-2. **Login to Vercel**
-   ```bash
-   vercel login
-   ```
+```bash
+cd client
+vercel login
+vercel --prod
+```
 
-3. **Deploy from Client Directory**
-   ```bash
-   cd client
-   vercel --prod
-   ```
+Follow the prompts:
+- **Set up and deploy**: `Y`
+- **Which scope**: Select your account
+- **Link to existing project**: `N`
+- **Project name**: `conversaiq` (or your choice)
+- **Directory**: `./` (current directory)
+- **Override settings**: `N`
 
-4. **Configure Project**
-   - Framework: Vite
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Root Directory: Leave as `client`
+### Step 3: Copy Deployed URL
 
-5. **Set Environment Variables** (in Vercel dashboard)
-   After deployment, add:
-   ```
-   VITE_API_URL=https://conversaiq-backend.onrender.com
-   ```
+After deployment completes, Vercel will show your URL (e.g., `https://conversaiq.vercel.app`)
 
-6. **Update Backend CORS**
-   Go back to Render dashboard and update:
-   - `CLIENT_URL`: Your Vercel URL (e.g., https://conversaiq.vercel.app)
-   - `ALLOWED_ORIGINS`: Same as above
+### Step 4: Update Backend CORS
+
+Go back to Railway → Your service → **Variables** → Update:
+```
+CLIENT_URL=https://conversaiq.vercel.app
+ALLOWED_ORIGINS=https://conversaiq.vercel.app
+```
+
+Railway will automatically redeploy with new environment variables.
 
 ---
 
-## Alternative: Deploy Frontend to Render (Static Site)
+## Seed the Database
 
-1. **Create Static Site**
-   - Dashboard → "New +" → "Static Site"
-   - Connect repository
-   - **Root Directory**: `client`
-   - **Build Command**: `npm install && npm run build`
-   - **Publish Directory**: `dist`
+After backend is deployed and MongoDB is connected:
 
-2. **Add Rewrite Rules in `render.yaml`**
-   ```yaml
-   services:
-     - type: web
-       name: conversaiq-frontend
-       runtime: static
-       buildCommand: npm install && npm run build
-       staticPublishPath: ./dist
-       routes:
-         - type: rewrite
-           source: /*
-           destination: /index.html
-   ```
+```bash
+# In your local server directory
+cd server
+
+# Temporarily update .env to use MongoDB Atlas URI
+MONGODB_URI=<your-atlas-uri> npm run seed
+```
+
+This will create demo users and sample data.
 
 ---
 
-## Post-Deployment Steps
+## Post-Deployment Testing
 
-1. **Test the Deployed Backend**
-   - Visit `https://your-backend-url.onrender.com/api`
-   - Should see API documentation
+### 1. Test Backend
+Visit: `https://your-backend.up.railway.app/api`
 
-2. **Test the Frontend**
-   - Visit your frontend URL
-   - Try logging in
-   - Check browser console for CORS errors
+Should see API documentation with version info.
 
-3. **Seed the Database** (if using MongoDB Atlas)
-   ```bash
-   # Temporarily set MONGODB_URI to Atlas in local .env
-   cd server
-   npm run seed
-   ```
+### 2. Test Frontend
+Visit: `https://conversaiq.vercel.app`
 
-4. **Monitor Logs**
-   - Render Dashboard → Service → Logs
-   - Look for "MongoDB Connected" and no errors
+Try logging in with demo accounts:
+- **Agent**: `sarah@conversaiq.com`
+- **Client**: (after seeding)
+- **Admin**: (after seeding)
+
+### 3. Check Logs
+- **Railway**: Dashboard → Service → Logs
+- **Vercel**: Dashboard → Project → Logs
+
+Look for:
+- ✅ MongoDB Connected
+- No CORS errors in browser console
+
+---
+
+## Railway Configuration File (Optional)
+
+Create `railway.json` in the root directory for advanced configuration:
+
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "cd server && npm install"
+  },
+  "deploy": {
+    "startCommand": "cd server && npm start",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
+```
 
 ---
 
 ## Troubleshooting
 
 ### CORS Errors
-- Ensure `CLIENT_URL` and `ALLOWED_ORIGINS` match your frontend URL exactly
+- Ensure `CLIENT_URL` and `ALLOWED_ORIGINS` match your Vercel URL **exactly**
 - No trailing slashes
+- Redeploy backend after changing variables
 
 ### MongoDB Connection Failed
-- Check MongoDB Atlas IP Whitelist (add `0.0.0.0/0` to allow all)
-- Verify connection string is correct
+- Check MongoDB Atlas IP whitelist includes `0.0.0.0/0`
+- Verify connection string has correct password
 - Check database user permissions
 
-### Build Failures
-- Check Node version (should be >= 18)
-- Clear node_modules and reinstall: `rm -rf node_modules package-lock.json && npm install`
+### Railway Build Failures
+- Check Node version (Railway uses latest by default)
+- Verify `package.json` has correct scripts
+- Check Railway logs for specific errors
 
-### Frontend Build Errors
-- Check for any TypeScript/ESLint errors
-- Try building locally first: `npm run build`
+### Port Issues
+Railway provides `$PORT` environment variable automatically - the server should use `process.env.PORT`.
 
 ---
 
-## Expected Deployment URLs
+## Cost
 
-- **Backend**: `https://conversaiq-backend.onrender.com`
-- **Frontend**: `https://conversaiq.vercel.app` (or similar)
+- **Railway**: $5 credit free (no card required), then pay-as-you-go
+- **Vercel**: Free tier (100GB bandwidth/month, 100 serverless function invocations)
+- **MongoDB Atlas**: Free M0 tier (512MB storage)
 
-Save these URLs for future reference!
+**Total MVP cost**: $0 with free tiers! 🎉
+
+---
+
+## Expected URLs
+
+Save these for reference:
+- **Backend**: `https://conversaiq-backend-production.up.railway.app`
+- **Frontend**: `https://conversaiq.vercel.app`
