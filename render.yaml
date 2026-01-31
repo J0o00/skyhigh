@@ -1,0 +1,41 @@
+# Render Blueprint for ConversaIQ Backend
+services:
+  # Backend Web Service
+  - type: web
+    name: conversaiq-backend
+    runtime: node
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false  # Manually set in Render dashboard
+      - key: CLIENT_URL
+        sync: false  # Set to frontend URL after deployment
+      - key: ALLOWED_ORIGINS
+        sync: false  # Comma-separated list of allowed origins
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 5000
+      - key: IMAP_HOST
+        value: imap.gmail.com
+      - key: IMAP_PORT
+        value: 993
+      - key: IMAP_USER
+        sync: false  # Set in dashboard
+      - key: IMAP_PASSWORD
+        sync: false  # Set in dashboard
+      - key: IMAP_POLL_INTERVAL
+        value: 60000
+    healthCheckPath: /api
+
+databases:
+  # MongoDB Database (if using Render's hosted MongoDB)
+  # Alternatively, use MongoDB Atlas and set MONGODB_URI manually
+  - name: conversaiq-db
+    databaseName: conversaiq
+    user: conversaiq

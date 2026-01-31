@@ -10,32 +10,19 @@ import { io } from 'socket.io-client';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
-// Metered.ca API for TURN credentials
-const METERED_API_URL = 'https://conversalq.metered.live/api/v1/turn/credentials?apiKey=921b4615e23f3504ad799e97a4d7506769a7';
-
-// Fallback ICE servers (STUN only)
-const FALLBACK_ICE_SERVERS = {
+// Google STUN servers (reliable for most use cases)
+const ICE_SERVERS = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
     ]
 };
 
-// Fetch TURN credentials from Metered.ca API
 async function getIceServers() {
-    try {
-        console.log('📡 Fetching TURN credentials from Metered.ca...');
-        const response = await fetch(METERED_API_URL);
-        if (!response.ok) {
-            throw new Error('Failed to fetch TURN credentials');
-        }
-        const iceServers = await response.json();
-        console.log('✅ Got TURN servers:', iceServers.length, 'servers');
-        return { iceServers };
-    } catch (error) {
-        console.error('❌ Failed to fetch TURN credentials, using fallback:', error);
-        return FALLBACK_ICE_SERVERS;
-    }
+    // For local dev, Google STUN is sufficient.
+    // In production, you would fetch TURN credentials here.
+    return ICE_SERVERS;
 }
 
 export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnectionChange, onRemoteStream }) {

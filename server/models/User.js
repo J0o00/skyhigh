@@ -104,7 +104,7 @@ userSchema.methods.toSafeObject = function () {
 };
 
 // Indexes
-userSchema.index({ email: 1 });
+// Note: email index is automatically created by unique: true
 userSchema.index({ role: 1 });
 userSchema.index({ isOnline: 1 });
 

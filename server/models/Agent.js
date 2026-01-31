@@ -63,7 +63,7 @@ const agentSchema = new mongoose.Schema({
 });
 
 // Index for quick lookup
-agentSchema.index({ email: 1 });
+// Note: email index is automatically created by unique: true
 agentSchema.index({ isOnline: 1 });
 
 module.exports = mongoose.model('Agent', agentSchema);
