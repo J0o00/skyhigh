@@ -52,23 +52,42 @@ function CustomerWebRTCCall() {
     // Speech recognition hook
     const speechRecognition = useSpeechRecognition({
         onResult: (entry) => {
-            // Add to our transcript with role
-            setAgentTranscript(prev => [...prev, {
-                ...entry,
-                speaker: 'customer'
-            }]);
+            const transcriptEntry = {
+                text: entry.text,
+                speaker: 'customer',
+                timestamp: new Date()
+            };
 
-            // Emit to server for real-time AI processing
+            // Add to our transcript locally
+            setAgentTranscript(prev => [...prev, transcriptEntry]);
+
+            // Emit to server for agent to receive
             if (socket && sessionId) {
                 socket.emit('webrtc:transcript-chunk', {
                     sessionId,
-                    text: entry.text,
-                    speaker: 'customer',
-                    timestamp: new Date()
+                    ...transcriptEntry
                 });
             }
         }
     });
+
+    // Listen for agent transcripts
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on('webrtc:transcript-chunk', (data) => {
+            // Receive transcripts from agent
+            setAgentTranscript(prev => [...prev, {
+                text: data.text,
+                speaker: data.speaker,
+                timestamp: data.timestamp
+            }]);
+        });
+
+        return () => {
+            socket.off('webrtc:transcript-chunk');
+        };
+    }, [socket]);
 
     // Request a call with an available agent
     const requestCall = async () => {

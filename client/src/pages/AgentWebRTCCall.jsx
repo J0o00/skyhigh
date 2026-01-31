@@ -67,18 +67,20 @@ function AgentWebRTCCall() {
     // Speech recognition hook
     const speechRecognition = useSpeechRecognition({
         onResult: (entry) => {
-            setTranscript(prev => [...prev, {
-                ...entry,
-                speaker: 'agent'
-            }]);
+            const transcriptEntry = {
+                text: entry.text,
+                speaker: 'agent',
+                timestamp: new Date()
+            };
 
-            // Emit to server/peer
+            // Add to local transcript
+            setTranscript(prev => [...prev, transcriptEntry]);
+
+            // Emit to server/peer so others can see it
             if (socket && sessionId) {
                 socket.emit('webrtc:transcript-chunk', {
                     sessionId,
-                    text: entry.text,
-                    speaker: 'agent',
-                    timestamp: new Date()
+                    ...transcriptEntry
                 });
             }
         }
