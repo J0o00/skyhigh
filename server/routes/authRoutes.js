@@ -26,7 +26,9 @@ router.post('/register', async (req, res) => {
         }
 
         // Check if user already exists
+        console.log('[REGISTER] Checking for existing user with email:', email.toLowerCase());
         const existingUser = await User.findOne({ email: email.toLowerCase() });
+        console.log('[REGISTER] Found existing user:', existingUser ? existingUser.email : 'NONE');
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -57,7 +59,7 @@ router.post('/register', async (req, res) => {
             const customer = new Customer({
                 name,
                 email: email.toLowerCase(),
-                phone: phone || 'Not provided',
+                phone: phone || undefined, // Allow empty phone
                 currentIntent: 'inquiry',
                 potentialLevel: 'medium',
                 potentialScore: 50

@@ -98,10 +98,8 @@ const customerSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: true,
-        unique: true,
         trim: true,
-        index: true // Index for fast lookup during incoming calls
+        sparse: true // Allow multiple null/empty values
     },
     email: {
         type: String,
