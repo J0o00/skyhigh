@@ -89,13 +89,12 @@ function AgentWebRTCCall() {
         if (!socket) return;
 
         socket.on('webrtc:transcript-chunk', (data) => {
-            if (data.speaker !== 'agent') { // Don't duplicate self
-                setTranscript(prev => [...prev, {
-                    text: data.text,
-                    speaker: data.speaker,
-                    timestamp: data.timestamp
-                }]);
-            }
+            // Agents receive all transcripts (client + agent)
+            setTranscript(prev => [...prev, {
+                text: data.text,
+                speaker: data.speaker,
+                timestamp: data.timestamp
+            }]);
         });
 
         socket.on('webrtc:ai-insights', (data) => {
@@ -448,7 +447,7 @@ function AgentWebRTCCall() {
                                             color: t.speaker === 'agent' ? '#818cf8' : '#10b981',
                                             fontWeight: 500
                                         }}>
-                                            {t.speaker === 'agent' ? '🎧 You' : '👤 Customer'}
+                                            {t.speaker === 'agent' ? '🎧 Agent' : '👤 Client'}
                                         </span>
                                         <p style={{ margin: '4px 0 0' }}>{t.text}</p>
                                     </div>
