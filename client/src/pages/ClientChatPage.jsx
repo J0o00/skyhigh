@@ -10,6 +10,8 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { api } from '../services/api';
 
+import '../styles/BackButton.css';
+
 function ClientChatPage() {
     const { user } = useAuth();
     const { socket } = useSocket();
@@ -19,6 +21,11 @@ function ClientChatPage() {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    const handleMouseMove = (e) => {
+        setMousePos({ x: e.clientX, y: e.clientY });
+    };
 
     // Load chat history
     useEffect(() => {
@@ -102,15 +109,31 @@ function ClientChatPage() {
     };
 
     return (
-        <div style={{
-            height: '100vh',
-            background: '#0f172a',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
+        <div
+            onMouseMove={handleMouseMove}
+            style={{
+                height: '100vh',
+                backgroundColor: '#0f172a',
+                backgroundImage: `
+                    radial-gradient(circle 400px at ${mousePos.x}px ${mousePos.y}px, rgba(16, 185, 129, 0.15), transparent 80%),
+                    repeating-radial-gradient(circle at ${mousePos.x}px ${mousePos.y}px, transparent 0, transparent 20px, rgba(255,255,255,0.05) 21px, transparent 22px),
+                    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)
+                `,
+                backgroundSize: '100% 100%, 100% 100%, 40px 40px, 40px 40px',
+                backgroundPosition: '0 0, 0 0, center center, center center',
+                backgroundRepeat: 'no-repeat, no-repeat, repeat, repeat',
+                backgroundBlendMode: 'normal',
+                transition: 'background-image 0s', // Instant update for responsiveness
+                display: 'flex',
+                flexDirection: 'column'
+            }}
+        >
             {/* Header */}
             <nav style={{
-                background: 'rgba(15, 23, 42, 0.95)',
+                background: 'rgba(15, 23, 42, 0.2)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
                 borderBottom: '1px solid rgba(255,255,255,0.1)',
                 padding: '16px 24px',
                 display: 'flex',
@@ -119,21 +142,23 @@ function ClientChatPage() {
             }}>
                 <button
                     onClick={() => navigate('/client/dashboard')}
+                    className="back-btn-crystalline"
                     style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
                         cursor: 'pointer',
-                        fontSize: '1.25rem'
+                        padding: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '8px'
                     }}
                 >
-                    ←
+                    <img src="/white-back-arrow.svg" alt="Back" style={{ width: '24px', height: '24px' }} />
                 </button>
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img src="/white-chat-dots-thin.svg" alt="Chat" style={{ width: '24px', height: '24px' }} />
                     <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
-                        💬 Live Chat
+                        Live Chat
                     </h1>
-                    <span style={{ fontSize: '0.75rem', color: '#10b981' }}>● Online</span>
                 </div>
             </nav>
 
@@ -151,7 +176,7 @@ function ClientChatPage() {
                         Loading messages...
                     </div>
                 ) : messages.length === 0 ? (
-                    <div style={{ color: '#64748b', textAlign: 'center', padding: '48px' }}>
+                    <div style={{ color: '#ffffff', textAlign: 'center', padding: '48px' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '16px' }}>💬</div>
                         <p>Start a conversation!</p>
                     </div>
@@ -173,7 +198,7 @@ function ClientChatPage() {
                                 padding: '12px 16px',
                                 borderRadius: msg.direction === 'inbound' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                                 background: msg.direction === 'inbound'
-                                    ? 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
+                                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                                     : 'rgba(51, 65, 85, 0.8)',
                                 color: '#f8fafc'
                             }}>
@@ -198,7 +223,9 @@ function ClientChatPage() {
                 onSubmit={sendMessage}
                 style={{
                     padding: '16px 24px',
-                    background: 'rgba(30, 41, 59, 0.95)',
+                    background: 'rgba(30, 41, 59, 0.2)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
                     borderTop: '1px solid rgba(255,255,255,0.1)',
                     display: 'flex',
                     gap: '12px'
@@ -223,23 +250,27 @@ function ClientChatPage() {
                 <button
                     type="submit"
                     disabled={!newMessage.trim() || sending}
+                    className="hover-pop"
                     style={{
                         width: '48px',
                         height: '48px',
-                        borderRadius: '50%',
-                        border: 'none',
-                        background: newMessage.trim() && !sending
-                            ? 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
-                            : 'rgba(51, 65, 85, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(15, 23, 42, 0.8)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '24px',
                         color: 'white',
                         fontSize: '1.25rem',
-                        cursor: newMessage.trim() && !sending ? 'pointer' : 'not-allowed'
+                        cursor: newMessage.trim() && !sending ? 'pointer' : 'not-allowed',
+                        opacity: newMessage.trim() && !sending ? 1 : 0.5,
+                        transition: 'all 0.2s ease'
                     }}
                 >
                     ➤
                 </button>
-            </form>
-        </div>
+            </form >
+        </div >
     );
 }
 

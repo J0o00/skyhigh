@@ -1,39 +1,115 @@
 @import "tailwindcss";
 
-/* Nasalization Font */
 @font-face {
-  font-family: 'Nasalization';
-  src: url('/fonts/nasalization/Nasalization Rg.otf') format('opentype');
-  font-weight: 400;
+  font-family: 'SF-Title';
+  src: url('/fonts/SF-Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF-Body';
+  src: url('/fonts/SF-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SFNSDisplay-Light';
+  src: url('/fonts/SFNSDisplay-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+.font-sf-display-light {
+  font-family: 'SFNSDisplay-Light', sans-serif;
+}
+
+:root {
+  --font-title: 'SF-Title', sans-serif;
+  --font-body: 'SF-Body', sans-serif;
+}
+
+
+/* SF Display Bold Font */
+@font-face {
+  font-family: 'SF Display';
+  src: url('/fonts/SFNSDisplay-Bold.otf') format('opentype');
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
-/* iPhone Glossy Liquid Title */
+/* Transparent Liquid Crystal Glass Title */
 .title-glossy {
-  font-family: 'Nasalization', -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: 0.15em;
+  font-family: 'SF-Title', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.1);
   background: linear-gradient(180deg,
-      rgba(255, 255, 255, 1) 0%,
-      rgba(255, 255, 255, 0.9) 30%,
-      rgba(255, 255, 255, 0.7) 50%,
-      rgba(200, 200, 200, 0.6) 70%,
-      rgba(150, 150, 150, 0.5) 100%);
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.1) 45%,
+      rgba(255, 255, 255, 0.6) 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: none;
   position: relative;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  display: inline-block;
+  transform: scaleX(1.2);
+
+  /* Crystalline Glow & Shadow */
+  text-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(255, 255, 255, 0.15);
+
+  /* Glass Filter */
+  backdrop-filter: blur(8px);
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));
+  animation: minimalGlow 4s ease-in-out infinite;
+}
+
+/* Simple Plain Title for non-landing pages */
+.title-plain {
+  font-family: 'SF-Title', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+@keyframes minimalGlow {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));
+    opacity: 0.9;
+  }
+
+  50% {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4));
+    opacity: 1;
+  }
+}
+
+@keyframes glassPulse {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgba(32, 224, 120, 0.4));
+    opacity: 0.9;
+  }
+
+  50% {
+    filter: drop-shadow(0 0 20px rgba(32, 224, 120, 0.7));
+    opacity: 1;
+  }
 }
 
 
 
 @layer base {
   body {
-    background-color: #020202;
+    background-color: #0a0f0d;
     color: #ffffff;
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'SF-Body', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -51,24 +127,25 @@
       0 20px 50px -12px rgba(0, 0, 0, 0.5);
   }
 
-  /* Liquid Glass - The requested "Floating in Liquid" effect */
+  /* Liquid Glass - Clear Transparent Glass */
   .glass-liquid {
-    @apply backdrop-blur-2xl bg-white/5 border border-white/10 relative overflow-hidden;
+    @apply backdrop-blur-md bg-white/5 border border-white/20 relative overflow-hidden;
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.05),
-      0 10px 40px -10px rgba(0, 0, 0, 0.5),
-      inset 0 0 20px rgba(255, 255, 255, 0.02);
+      0 8px 32px 0 rgba(0, 0, 0, 0.1),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   }
 
+  /* 
   .glass-liquid::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.05), transparent);
     background-size: 200% 200%;
-    animation: liquid-shine 8s infinite linear;
+    animation: liquid-shine 10s infinite linear;
     pointer-events: none;
   }
+  */
 
   @keyframes liquid-shine {
     0% {
@@ -86,12 +163,13 @@
   }
 
   .input-liquid {
-    @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 transition-all duration-300 backdrop-blur-sm;
+    @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 transition-all duration-300 backdrop-blur-sm focus:text-[#20e078];
   }
 
   .input-liquid:focus {
-    @apply outline-none border-white/30 bg-white/10;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    @apply outline-none bg-white/10;
+    border-color: #20e078;
+    box-shadow: 0 0 15px rgba(32, 224, 120, 0.2);
   }
 
   .input-defi:focus {
@@ -106,13 +184,15 @@
   }
 
   .btn-liquid {
-    @apply w-full py-3 rounded-xl font-medium text-sm text-black bg-white/90 hover:bg-white transition-all duration-300 relative overflow-hidden;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    @apply w-full py-3 rounded-xl font-bold text-sm text-[#0a0f0d] transition-all duration-300 relative overflow-hidden;
+    background: linear-gradient(135deg, #20e078 0%, #0f5940 100%);
+    box-shadow: 0 0 20px rgba(32, 224, 120, 0.2);
   }
 
   .btn-liquid:hover {
     @apply transform scale-[1.02];
-    box-shadow: 0 0 40px rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 30px rgba(32, 224, 120, 0.5);
+    filter: brightness(1.2);
   }
 
   .btn-defi:hover {
@@ -1071,4 +1151,23 @@
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(32, 224, 120, 0.2);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(32, 224, 120, 0.4);
 }

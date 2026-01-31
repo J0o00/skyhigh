@@ -4,11 +4,62 @@
  * Main dashboard for agents to manage customer interactions.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { api } from '../services/api';
+import '../styles/BackButton.css';
+
+const TiltButton = ({ children, onClick, className, style }) => {
+    const ref = useRef(null);
+
+    const handleMouseMove = (e) => {
+        if (!ref.current) return;
+
+        const rect = ref.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        const rotateX = ((y - centerY) / centerY) * -15;
+        const rotateY = ((x - centerX) / centerX) * 15;
+
+        ref.current.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+
+        const shimmer = ref.current.querySelector('.shimmer-button');
+        if (shimmer) {
+            shimmer.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.4) 0%, transparent 60%)`;
+            shimmer.style.opacity = 1;
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (!ref.current) return;
+        ref.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        const shimmer = ref.current.querySelector('.shimmer-button');
+        if (shimmer) {
+            shimmer.style.opacity = 0;
+        }
+    };
+
+    return (
+        <button
+            ref={ref}
+            onClick={onClick}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className={`relative overflow-hidden transition-all duration-200 ease-out transform-gpu ${className}`}
+            style={{ transformStyle: 'preserve-3d', ...style }}
+        >
+            <div className="shimmer-button absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-0 z-10" />
+            <div className="relative z-20 flex items-center gap-2">
+                {children}
+            </div>
+        </button>
+    );
+};
 
 function AgentDashboard() {
     const { user, logout } = useAuth();
@@ -102,56 +153,36 @@ function AgentDashboard() {
     };
 
     return (
-        <div style={{
-            height: '100vh',
-            background: '#0f172a',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
+        <div className="relative h-screen flex flex-col overflow-hidden font-sf-display-light">
             {/* Header */}
-            <nav style={{
-                background: 'rgba(15, 23, 42, 0.95)',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                padding: '16px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-            }}>
-                <div style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #818cf8 0%, #8b5cf6 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                }}>
-                    🎧 Agent Portal
+            <nav className="glass-defi border-b border-white/5 px-6 py-4 flex justify-between items-center z-50">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <svg style={{ width: '24px', height: '24px', color: '#f8fafc' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    </svg>
+                    <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', margin: 0, letterSpacing: '0.1em' }}>
+                        Agent Portal
+                    </h1>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <button
+                <div className="flex items-center gap-4">
+                    <TiltButton
                         onClick={() => navigate('/agent/webrtc-call')}
+                        className="hover-pop glass-liquid px-5 py-2 transition-all text-sm font-medium"
                         style={{
-                            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                            border: 'none',
+                            borderRadius: '24px',
                             color: 'white',
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 500
+                            letterSpacing: '0.03em'
                         }}
                     >
-                        🎧 Call Center
-                    </button>
-                    <span style={{ color: '#94a3b8' }}>{user?.name}</span>
+                        <img src="/white-phone-call-thin.svg" alt="Call" style={{ width: '16px', height: '16px' }} />
+                        Call Center
+                    </TiltButton>
+                    <span className="text-white/60 text-sm">
+                        {user?.name}
+                    </span>
                     <button
                         onClick={() => { logout(); navigate('/'); }}
-                        style={{
-                            background: 'transparent',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            color: '#94a3b8',
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            cursor: 'pointer'
-                        }}
+                        className="px-4 py-2 rounded-lg text-sm text-white/60 border border-white/10 hover:bg-white/5 hover:text-white transition-all"
                     >
                         Logout
                     </button>
@@ -159,136 +190,99 @@ function AgentDashboard() {
             </nav>
 
             {/* Main Content */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <div className="flex-1 flex overflow-hidden">
                 {/* Inbox Sidebar */}
-                <div style={{
-                    width: '320px',
-                    borderRight: '1px solid rgba(255,255,255,0.1)',
-                    overflowY: 'auto',
-                    background: 'rgba(15, 23, 42, 0.5)'
-                }}>
-                    <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <h2 style={{ color: '#f8fafc', fontSize: '1rem', margin: 0 }}>
-                            Inbox ({inbox.length})
+                <div className="w-80 glass-defi border-r border-white/5 flex flex-col">
+                    <div className="p-4 border-b border-white/5 bg-white/5">
+                        <h2 className="text-white font-bold text-sm tracking-wide uppercase">
+                            Inbox <span className="text-[#20e078]">({inbox.length})</span>
                         </h2>
                     </div>
 
-                    {loading ? (
-                        <div style={{ padding: '24px', color: '#64748b', textAlign: 'center' }}>
-                            Loading...
-                        </div>
-                    ) : inbox.length === 0 ? (
-                        <div style={{ padding: '24px', color: '#64748b', textAlign: 'center' }}>
-                            No messages yet
-                        </div>
-                    ) : (
-                        inbox.map(item => (
-                            <button
-                                key={item.customer._id}
-                                onClick={() => selectCustomer(item.customer._id)}
-                                style={{
-                                    width: '100%',
-                                    padding: '16px',
-                                    background: selectedCustomer === item.customer._id ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
-                                    border: 'none',
-                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                    cursor: 'pointer',
-                                    textAlign: 'left'
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                    <span style={{ color: '#f8fafc', fontWeight: 500 }}>{item.customer.name}</span>
-                                    <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
-                                        {formatTime(item.latestInteraction.createdAt)}
-                                    </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>
-                                        {item.latestInteraction.channel === 'chat' && '💬'}
-                                        {item.latestInteraction.channel === 'email' && '📧'}
-                                        {item.latestInteraction.channel === 'phone' && '📞'}
-                                        {' '}{item.latestInteraction.summary?.substring(0, 30)}...
-                                    </span>
-                                    {item.unreadCount > 0 && (
-                                        <span style={{
-                                            background: '#8b5cf6',
-                                            color: 'white',
-                                            fontSize: '0.75rem',
-                                            padding: '2px 8px',
-                                            borderRadius: '12px'
-                                        }}>
-                                            {item.unreadCount}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                        {loading ? (
+                            <div className="p-8 text-center text-white/40 text-sm">Loading...</div>
+                        ) : inbox.length === 0 ? (
+                            <div className="p-8 text-center text-white/40 text-sm">No messages yet</div>
+                        ) : (
+                            inbox.map(item => (
+                                <button
+                                    key={item.customer._id}
+                                    onClick={() => selectCustomer(item.customer._id)}
+                                    className={`w-full p-4 text-left border-b border-white/5 hover:bg-white/5 transition-colors ${selectedCustomer === item.customer._id ? 'bg-white/10 border-l-2 border-l-[#20e078]' : 'border-l-2 border-l-transparent'
+                                        }`}
+                                >
+                                    <div className="flex justify-between mb-1">
+                                        <span className={`font-medium ${selectedCustomer === item.customer._id ? 'text-white' : 'text-white/80'}`}>
+                                            {item.customer.name}
                                         </span>
-                                    )}
-                                </div>
-                            </button>
-                        ))
-                    )}
+                                        <span className="text-xs text-white/40">
+                                            {formatTime(item.latestInteraction.createdAt)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-xs text-white/60 truncate pr-2 flex items-center gap-1">
+                                            <span>
+                                                {item.latestInteraction.channel === 'chat' && '💬'}
+                                                {item.latestInteraction.channel === 'email' && '📧'}
+                                                {item.latestInteraction.channel === 'phone' && '📞'}
+                                            </span>
+                                            {item.latestInteraction.summary?.substring(0, 25)}...
+                                        </div>
+                                        {item.unreadCount > 0 && (
+                                            <span className="bg-[#20e078] text-black text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                                {item.unreadCount}
+                                            </span>
+                                        )}
+                                    </div>
+                                </button>
+                            ))
+                        )}
+                    </div>
                 </div>
 
                 {/* Customer Detail Panel */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className="flex-1 flex flex-col overflow-hidden relative">
                     {!selectedCustomer ? (
-                        <div style={{
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#64748b'
-                        }}>
-                            Select a customer to view details
+                        <div className="flex-1 flex flex-col items-center justify-center text-white/30">
+                            <div className="text-6xl mb-4 opacity-20">👋</div>
+                            <p>Select a customer to view details</p>
                         </div>
                     ) : customerData ? (
                         <>
                             {/* Customer Header */}
-                            <div style={{
-                                padding: '20px 24px',
-                                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                                background: 'rgba(30, 41, 59, 0.5)'
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                            <div className="p-6 border-b border-white/5 glass-liquid z-10">
+                                <div className="flex justify-between items-start">
                                     <div>
-                                        <h2 style={{ color: '#f8fafc', margin: '0 0 4px 0' }}>
+                                        <h2 className="text-2xl font-bold text-white mb-1">
                                             {customerData.customer.name}
                                         </h2>
-                                        <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.875rem' }}>
-                                            {customerData.customer.email} • {customerData.customer.phone}
+                                        <p className="text-white/50 text-sm flex gap-3">
+                                            <span>📧 {customerData.customer.email}</span>
+                                            <span className="text-white/20">|</span>
+                                            <span>📞 {customerData.customer.phone || 'No Phone'}</span>
                                         </p>
                                     </div>
-                                    <div style={{
-                                        padding: '4px 12px',
-                                        background: customerData.customer.potentialLevel === 'high' ? 'rgba(16, 185, 129, 0.15)' :
-                                            customerData.customer.potentialLevel === 'medium' ? 'rgba(245, 158, 11, 0.15)' :
-                                                'rgba(100, 116, 139, 0.15)',
-                                        color: customerData.customer.potentialLevel === 'high' ? '#10b981' :
-                                            customerData.customer.potentialLevel === 'medium' ? '#f59e0b' : '#64748b',
-                                        borderRadius: '12px',
-                                        fontSize: '0.75rem',
-                                        textTransform: 'uppercase',
-                                        fontWeight: 600
-                                    }}>
-                                        {customerData.customer.potentialLevel} potential
+                                    <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${customerData.customer.potentialLevel === 'high' ? 'bg-[#20e078]/20 text-[#20e078]' :
+                                        customerData.customer.potentialLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
+                                            'bg-white/10 text-white/60'
+                                        }`}>
+                                        {customerData.customer.potentialLevel} Potential
                                     </div>
                                 </div>
 
                                 {/* Summary */}
                                 {customerData.summary && (
-                                    <div style={{
-                                        marginTop: '16px',
-                                        padding: '12px',
-                                        background: 'rgba(139, 92, 246, 0.1)',
-                                        borderRadius: '8px',
-                                        border: '1px solid rgba(139, 92, 246, 0.2)'
-                                    }}>
-                                        <div style={{ fontSize: '0.75rem', color: '#a78bfa', marginBottom: '4px', fontWeight: 600 }}>
-                                            💡 Context Summary
+                                    <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
+                                        <div className="text-xs font-bold text-[#20e078] mb-1 flex items-center gap-1">
+                                            💡 AI Context Summary
                                         </div>
-                                        <p style={{ color: '#e2e8f0', margin: 0, fontSize: '0.875rem' }}>
+                                        <p className="text-sm text-white/80 leading-relaxed">
                                             {customerData.summary.briefSummary}
                                         </p>
                                         {customerData.summary.recommendedApproach && (
-                                            <p style={{ color: '#94a3b8', margin: '8px 0 0', fontSize: '0.8125rem' }}>
-                                                <strong>Tip:</strong> {customerData.summary.recommendedApproach}
+                                            <p className="mt-2 text-xs text-white/50 border-t border-white/5 pt-2">
+                                                <strong className="text-white/70">Strategy:</strong> {customerData.summary.recommendedApproach}
                                             </p>
                                         )}
                                     </div>
@@ -296,131 +290,51 @@ function AgentDashboard() {
                             </div>
 
                             {/* Interactions */}
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-                                <h3 style={{ color: '#f8fafc', fontSize: '0.875rem', marginBottom: '16px' }}>
-                                    Interaction History ({customerData.interactions?.length || 0})
+                            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-4">
+                                <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">
+                                    History ({customerData.interactions?.length || 0})
                                 </h3>
 
                                 {customerData.interactions?.map(i => {
-                                    // Parse key points if available
+                                    // ... logic stays same ...
                                     let keyPoints = null;
-                                    try {
-                                        if (i.agentNotes) {
-                                            const parsed = JSON.parse(i.agentNotes);
-                                            keyPoints = parsed.keyPoints;
-                                        }
-                                    } catch (e) { }
+                                    try { if (i.agentNotes) keyPoints = JSON.parse(i.agentNotes).keyPoints; } catch (e) { }
 
-                                    // Generate summary for non-email channels
-                                    const getChannelIcon = () => {
-                                        if (i.channel === 'chat') return '💬';
-                                        if (i.channel === 'email') return '📧';
-                                        if (i.channel === 'phone') return '📞';
-                                        return '📝';
-                                    };
-
-                                    const getIntentColor = (intent) => {
-                                        const colors = {
-                                            'complaint': '#ef4444',
-                                            'support': '#f59e0b',
-                                            'inquiry': '#3b82f6',
-                                            'purchase': '#10b981',
-                                            'follow-up': '#8b5cf6'
-                                        };
-                                        return colors[intent] || '#64748b';
-                                    };
-
-                                    // Use key points if available, otherwise create basic summary
-                                    const displaySummary = keyPoints?.briefSummary ||
-                                        (i.summary?.length > 150 ? i.summary.substring(0, 150) + '...' : i.summary);
+                                    const displaySummary = keyPoints?.briefSummary || (i.summary?.length > 150 ? i.summary.substring(0, 150) + '...' : i.summary);
                                     const displayIntent = keyPoints?.intent || i.intent?.toUpperCase() || 'GENERAL';
-                                    const displayUrgency = keyPoints?.urgency || '🟢 NORMAL';
+                                    const displayUrgency = keyPoints?.urgency || 'NORMAL';
 
                                     return (
-                                        <div
-                                            key={i._id}
-                                            style={{
-                                                marginBottom: '16px',
-                                                padding: '14px',
-                                                background: i.direction === 'inbound' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(139, 92, 246, 0.08)',
-                                                borderRadius: '10px',
-                                                borderLeft: `3px solid ${i.direction === 'inbound' ? '#06b6d4' : '#8b5cf6'}`
-                                            }}
-                                        >
-                                            {/* Header */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '1.2rem' }}>{getChannelIcon()}</span>
-                                                    <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
-                                                        {i.direction === 'inbound' ? 'Customer' : 'Agent'} • {i.channel}
+                                        <div key={i._id} className={`p-4 rounded-xl border border-white/5 ${i.direction === 'inbound' ? 'bg-white/5' : 'bg-white/[0.02]'
+                                            }`}>
+                                            <div className="flex justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-lg">
+                                                        {i.channel === 'chat' ? '💬' : i.channel === 'email' ? '📧' : i.channel === 'phone' ? '📞' : '📝'}
+                                                    </span>
+                                                    <span className="text-xs font-medium text-white/60 uppercase">
+                                                        {i.direction} • {i.channel}
                                                     </span>
                                                 </div>
-                                                <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                                                <span className="text-xs text-white/40 font-mono">
                                                     {formatTime(i.createdAt)}
                                                 </span>
                                             </div>
 
-                                            {/* Key Points Badges */}
-                                            <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                                                <span style={{
-                                                    padding: '3px 10px',
-                                                    background: `${getIntentColor(i.intent)}22`,
-                                                    color: getIntentColor(i.intent),
-                                                    borderRadius: '12px',
-                                                    fontSize: '0.7rem',
-                                                    fontWeight: 600
-                                                }}>
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-white/70">
                                                     {displayIntent}
                                                 </span>
-                                                <span style={{
-                                                    padding: '3px 10px',
-                                                    background: displayUrgency.includes('URGENT') ? 'rgba(239, 68, 68, 0.2)' :
-                                                        displayUrgency.includes('HIGH') ? 'rgba(245, 158, 11, 0.2)' :
-                                                            'rgba(16, 185, 129, 0.2)',
-                                                    color: displayUrgency.includes('URGENT') ? '#fca5a5' :
-                                                        displayUrgency.includes('HIGH') ? '#fcd34d' : '#6ee7b7',
-                                                    borderRadius: '12px',
-                                                    fontSize: '0.7rem',
-                                                    fontWeight: 600
-                                                }}>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${displayUrgency.includes('URGENT') ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
+                                                    }`}>
                                                     {displayUrgency}
                                                 </span>
-                                                {keyPoints?.actionNeeded && (
-                                                    <span style={{
-                                                        padding: '3px 10px',
-                                                        background: 'rgba(6, 182, 212, 0.2)',
-                                                        color: '#67e8f9',
-                                                        borderRadius: '12px',
-                                                        fontSize: '0.7rem',
-                                                        fontWeight: 600
-                                                    }}>
-                                                        {keyPoints.actionNeeded}
-                                                    </span>
-                                                )}
                                             </div>
 
-                                            {/* Summary Only - No Raw Content */}
-                                            <div style={{
-                                                background: 'rgba(0,0,0,0.15)',
-                                                padding: '12px',
-                                                borderRadius: '8px'
-                                            }}>
-                                                <p style={{
-                                                    color: '#e2e8f0',
-                                                    margin: 0,
-                                                    fontSize: '0.9rem',
-                                                    lineHeight: '1.6'
-                                                }}>
-                                                    <strong style={{ color: '#a78bfa' }}>📋 Summary:</strong>{' '}
+                                            <div className="p-3 rounded-lg bg-black/20 border border-white/5">
+                                                <p className="text-sm text-white/80 leading-relaxed">
                                                     {displaySummary || 'No summary available'}
                                                 </p>
-
-                                                {/* Call duration if phone */}
-                                                {i.channel === 'phone' && i.callDuration && (
-                                                    <p style={{ color: '#94a3b8', margin: '8px 0 0', fontSize: '0.8rem' }}>
-                                                        ⏱️ Duration: {Math.floor(i.callDuration / 60)}m {i.callDuration % 60}s
-                                                    </p>
-                                                )}
                                             </div>
                                         </div>
                                     );
@@ -428,56 +342,26 @@ function AgentDashboard() {
                             </div>
 
                             {/* Reply Box */}
-                            <div style={{
-                                padding: '16px 24px',
-                                borderTop: '1px solid rgba(255,255,255,0.1)',
-                                background: 'rgba(30, 41, 59, 0.5)'
-                            }}>
+                            <div className="p-4 border-t border-white/10 glass-defi z-20">
                                 <textarea
                                     value={replyText}
                                     onChange={(e) => setReplyText(e.target.value)}
                                     placeholder="Type your reply..."
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        background: 'rgba(15, 23, 42, 0.8)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        color: '#f8fafc',
-                                        resize: 'none',
-                                        outline: 'none',
-                                        marginBottom: '12px'
-                                    }}
+                                    className="w-full p-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-[#20e078]/50 transition-colors resize-none mb-3"
                                     rows={2}
                                 />
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                                <div className="flex gap-3">
                                     <button
                                         onClick={() => sendReply('chat')}
                                         disabled={!replyText.trim() || sending}
-                                        style={{
-                                            padding: '8px 16px',
-                                            background: replyText.trim() ? 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' : '#334155',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            color: 'white',
-                                            cursor: replyText.trim() ? 'pointer' : 'not-allowed',
-                                            fontSize: '0.875rem'
-                                        }}
+                                        className="flex-1 btn-liquid py-2 text-xs opacity-90 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         💬 Chat Reply
                                     </button>
                                     <button
                                         onClick={() => sendReply('email')}
                                         disabled={!replyText.trim() || sending}
-                                        style={{
-                                            padding: '8px 16px',
-                                            background: replyText.trim() ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#334155',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            color: 'white',
-                                            cursor: replyText.trim() ? 'pointer' : 'not-allowed',
-                                            fontSize: '0.875rem'
-                                        }}
+                                        className="flex-1 py-2 rounded-xl bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         📧 Email Reply
                                     </button>
@@ -485,14 +369,8 @@ function AgentDashboard() {
                             </div>
                         </>
                     ) : (
-                        <div style={{
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#64748b'
-                        }}>
-                            Loading customer...
+                        <div className="flex-1 flex items-center justify-center text-white/40">
+                            Loading customer data...
                         </div>
                     )}
                 </div>

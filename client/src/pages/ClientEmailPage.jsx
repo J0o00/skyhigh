@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import '../styles/BackButton.css';
 
 function ClientEmailPage() {
     const { user } = useAuth();
@@ -15,6 +16,11 @@ function ClientEmailPage() {
     const [formData, setFormData] = useState({ subject: '', message: '' });
     const [status, setStatus] = useState('compose'); // compose, sending, sent
     const [error, setError] = useState('');
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    const handleMouseMove = (e) => {
+        setMousePos({ x: e.clientX, y: e.clientY });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -40,10 +46,25 @@ function ClientEmailPage() {
     };
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            background: '#0f172a'
-        }}>
+        <div
+            onMouseMove={handleMouseMove}
+            className="font-sf-display-light"
+            style={{
+                minHeight: '100vh',
+                backgroundColor: '#0f172a',
+                backgroundImage: `
+                    radial-gradient(circle 400px at ${mousePos.x}px ${mousePos.y}px, rgba(6, 182, 212, 0.15), transparent 80%),
+                    repeating-radial-gradient(circle at ${mousePos.x}px ${mousePos.y}px, transparent 0, transparent 20px, rgba(255,255,255,0.05) 21px, transparent 22px),
+                    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)
+                `,
+                backgroundSize: '100% 100%, 100% 100%, 40px 40px, 40px 40px',
+                backgroundPosition: '0 0, 0 0, center center, center center',
+                backgroundRepeat: 'no-repeat, no-repeat, repeat, repeat',
+                backgroundBlendMode: 'normal',
+                transition: 'background-image 0s'
+            }}
+        >
             {/* Header */}
             <nav style={{
                 background: 'rgba(15, 23, 42, 0.95)',
@@ -55,19 +76,24 @@ function ClientEmailPage() {
             }}>
                 <button
                     onClick={() => navigate('/client/dashboard')}
+                    className="back-btn-crystalline"
                     style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
                         cursor: 'pointer',
-                        fontSize: '1.25rem'
+                        padding: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '8px'
                     }}
                 >
-                    ←
+                    <img src="/white-back-arrow.svg" alt="Back" style={{ width: '24px', height: '24px' }} />
                 </button>
-                <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
-                    📧 Send Email
-                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img src="/white-envelope-thin.svg" alt="Send Email" style={{ width: '24px', height: '24px' }} />
+                    <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', margin: 0, letterSpacing: '0.05em' }}>
+                        Send Email
+                    </h1>
+                </div>
             </nav>
 
             {/* Content */}
@@ -153,12 +179,13 @@ function ClientEmailPage() {
 
                             <button
                                 type="submit"
+                                className="hover-pop"
                                 style={{
                                     width: '100%',
                                     padding: '14px',
-                                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                                    border: 'none',
-                                    borderRadius: '10px',
+                                    background: 'rgba(15, 23, 42, 0.8)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '24px',
                                     color: 'white',
                                     fontSize: '1rem',
                                     fontWeight: 600,
@@ -166,10 +193,11 @@ function ClientEmailPage() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: '8px'
+                                    gap: '8px',
+                                    fontFamily: 'sans-serif'
                                 }}
                             >
-                                📤 Send Email
+                                SEND
                             </button>
                         </form>
                     </div>
