@@ -52,7 +52,16 @@ const seedUsers = async () => {
         // Note: pre-save hook for password hashing only runs on save(), 
         // fallback to creating new instance and saving if not found.
 
-        const users = [adminData, defaultAdminData, agentData, clientData];
+        // Agent User 2 (Chrysler)
+        const agentData2 = {
+            name: 'Chrysler Agent',
+            email: 'chrykm10@gmail.com',
+            password: '123456',
+            role: 'agent',
+            isActive: true
+        };
+
+        const users = [adminData, defaultAdminData, agentData, agentData2, clientData];
 
         for (const userData of users) {
             // Check if user exists

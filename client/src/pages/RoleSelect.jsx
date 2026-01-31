@@ -2,8 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// LoginWidget moved OUTSIDE to prevent re-creation on every parent render
-const LoginWidget = ({ role, title, formState, isExpanded, isDimmed, onToggle, onInputChange, onLogin, onBack }) => {
+// AuthWidget moved OUTSIDE to prevent re-creation on every parent render
+const AuthWidget = ({
+    role,
+    title,
+    formState,
+    isExpanded,
+    isDimmed,
+    isSignup,
+    onToggle,
+    onInputChange,
+    onSubmit,
+    onBack,
+    onToggleMode
+}) => {
     return (
         <div
             className={`glass-liquid rounded-[24px] p-8 flex flex-col w-full max-w-[320px] transition-all duration-700 cursor-pointer
@@ -24,12 +36,23 @@ const LoginWidget = ({ role, title, formState, isExpanded, isDimmed, onToggle, o
                 {!isExpanded && <p className="text-xs text-white/40 mt-2 font-light tracking-widest uppercase">Tap to Access</p>}
             </div>
 
-            <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[350px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[450px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <form
-                    onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); onLogin(e, role); }}
+                    onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); onSubmit(e, role); }}
                     className="space-y-4 flex flex-col pt-2"
                     onClick={(e) => e.stopPropagation()}
                 >
+                    {/* Name field - only for signup */}
+                    {isSignup && (
+                        <input
+                            type="text"
+                            className="input-liquid text-center"
+                            placeholder="Full Name"
+                            value={formState.name || ''}
+                            onChange={(e) => onInputChange(role, 'name', e.target.value)}
+                        />
+                    )}
+
                     <input
                         type="email"
                         className="input-liquid text-center"
@@ -37,6 +60,17 @@ const LoginWidget = ({ role, title, formState, isExpanded, isDimmed, onToggle, o
                         value={formState.email}
                         onChange={(e) => onInputChange(role, 'email', e.target.value)}
                     />
+
+                    {/* Phone field - only for signup */}
+                    {isSignup && (
+                        <input
+                            type="tel"
+                            className="input-liquid text-center"
+                            placeholder="Phone (optional)"
+                            value={formState.phone || ''}
+                            onChange={(e) => onInputChange(role, 'phone', e.target.value)}
+                        />
+                    )}
 
                     <input
                         type="password"
@@ -52,18 +86,33 @@ const LoginWidget = ({ role, title, formState, isExpanded, isDimmed, onToggle, o
                         </div>
                     )}
 
+                    {formState.success && (
+                        <div className="text-green-300 text-xs text-center py-2 bg-green-500/10 rounded-lg">
+                            {formState.success}
+                        </div>
+                    )}
+
                     <div className="mt-4 flex flex-col gap-3">
                         <button
                             type="submit"
                             disabled={formState.loading}
                             className="btn-liquid"
                         >
-                            {formState.loading ? '...' : 'Login'}
+                            {formState.loading ? '...' : (isSignup ? 'Sign Up' : 'Login')}
                         </button>
+
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onToggleMode(); }}
+                            className="text-white/60 hover:text-white/90 text-sm transition-colors duration-300 py-1"
+                        >
+                            {isSignup ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
+                        </button>
+
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onBack(); }}
-                            className="text-white/50 hover:text-white/80 text-sm transition-colors duration-300 py-2"
+                            className="text-white/40 hover:text-white/70 text-xs transition-colors duration-300 py-1"
                         >
                             ← Back
                         </button>
@@ -76,23 +125,30 @@ const LoginWidget = ({ role, title, formState, isExpanded, isDimmed, onToggle, o
 
 function RoleSelect() {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, register } = useAuth();
 
     // Track which role is currently selected/expanded
     const [selectedRole, setSelectedRole] = useState(null);
 
-    // State for each login form
-    const [clientForm, setClientForm] = useState({ email: '', password: '', loading: false, error: '' });
-    const [agentForm, setAgentForm] = useState({ email: '', password: '', loading: false, error: '' });
-    const [adminForm, setAdminForm] = useState({ email: '', password: '', loading: false, error: '' });
+    // Track signup mode per role
+    const [signupMode, setSignupMode] = useState({
+        client: false,
+        agent: false,
+        admin: false
+    });
+
+    // State for each form
+    const [clientForm, setClientForm] = useState({ name: '', email: '', phone: '', password: '', loading: false, error: '', success: '' });
+    const [agentForm, setAgentForm] = useState({ name: '', email: '', phone: '', password: '', loading: false, error: '', success: '' });
+    const [adminForm, setAdminForm] = useState({ name: '', email: '', phone: '', password: '', loading: false, error: '', success: '' });
 
     const handleInputChange = (role, field, value) => {
-        if (role === 'client') setClientForm(prev => ({ ...prev, [field]: value, error: '' }));
-        if (role === 'agent') setAgentForm(prev => ({ ...prev, [field]: value, error: '' }));
-        if (role === 'admin') setAdminForm(prev => ({ ...prev, [field]: value, error: '' }));
+        if (role === 'client') setClientForm(prev => ({ ...prev, [field]: value, error: '', success: '' }));
+        if (role === 'agent') setAgentForm(prev => ({ ...prev, [field]: value, error: '', success: '' }));
+        if (role === 'admin') setAdminForm(prev => ({ ...prev, [field]: value, error: '', success: '' }));
     };
 
-    const handleLogin = async (e, role) => {
+    const handleSubmit = async (e, role) => {
         e.preventDefault();
 
         let currentState, setState;
@@ -100,19 +156,30 @@ function RoleSelect() {
         else if (role === 'agent') { currentState = agentForm; setState = setAgentForm; }
         else if (role === 'admin') { currentState = adminForm; setState = setAdminForm; }
 
-        setState(prev => ({ ...prev, loading: true, error: '' }));
+        setState(prev => ({ ...prev, loading: true, error: '', success: '' }));
+
+        const isSignup = signupMode[role];
 
         try {
             if (!currentState.email || !currentState.password) {
-                throw new Error('Required');
+                throw new Error('Email and password are required');
             }
-            await login(currentState.email, currentState.password, role);
+
+            if (isSignup) {
+                if (!currentState.name) {
+                    throw new Error('Name is required for signup');
+                }
+                await register(currentState.name, currentState.email, currentState.phone, currentState.password, role);
+            } else {
+                await login(currentState.email, currentState.password, role);
+            }
+
             navigate(`/${role}/dashboard`);
         } catch (err) {
             setState(prev => ({
                 ...prev,
                 loading: false,
-                error: 'Invalid credentials'
+                error: err.response?.data?.message || err.message || (isSignup ? 'Signup failed' : 'Invalid credentials')
             }));
         }
     };
@@ -123,6 +190,14 @@ function RoleSelect() {
         } else {
             setSelectedRole(role);
         }
+    };
+
+    const toggleSignupMode = (role) => {
+        setSignupMode(prev => ({ ...prev, [role]: !prev[role] }));
+        // Clear form errors when toggling
+        if (role === 'client') setClientForm(prev => ({ ...prev, error: '', success: '' }));
+        if (role === 'agent') setAgentForm(prev => ({ ...prev, error: '', success: '' }));
+        if (role === 'admin') setAdminForm(prev => ({ ...prev, error: '', success: '' }));
     };
 
     return (
@@ -150,40 +225,46 @@ function RoleSelect() {
 
                 {/* Pure Auth Widgets */}
                 <div className="flex flex-col lg:flex-row gap-12 items-center justify-center w-full">
-                    <LoginWidget
+                    <AuthWidget
                         role="client"
                         title="Client"
                         formState={clientForm}
                         isExpanded={selectedRole === 'client'}
                         isDimmed={selectedRole && selectedRole !== 'client'}
+                        isSignup={signupMode.client}
                         onToggle={() => toggleRole('client')}
                         onInputChange={handleInputChange}
-                        onLogin={handleLogin}
+                        onSubmit={handleSubmit}
                         onBack={() => setSelectedRole(null)}
+                        onToggleMode={() => toggleSignupMode('client')}
                     />
 
-                    <LoginWidget
+                    <AuthWidget
                         role="agent"
                         title="Agent"
                         formState={agentForm}
                         isExpanded={selectedRole === 'agent'}
                         isDimmed={selectedRole && selectedRole !== 'agent'}
+                        isSignup={signupMode.agent}
                         onToggle={() => toggleRole('agent')}
                         onInputChange={handleInputChange}
-                        onLogin={handleLogin}
+                        onSubmit={handleSubmit}
                         onBack={() => setSelectedRole(null)}
+                        onToggleMode={() => toggleSignupMode('agent')}
                     />
 
-                    <LoginWidget
+                    <AuthWidget
                         role="admin"
                         title="Admin"
                         formState={adminForm}
                         isExpanded={selectedRole === 'admin'}
                         isDimmed={selectedRole && selectedRole !== 'admin'}
+                        isSignup={signupMode.admin}
                         onToggle={() => toggleRole('admin')}
                         onInputChange={handleInputChange}
-                        onLogin={handleLogin}
+                        onSubmit={handleSubmit}
                         onBack={() => setSelectedRole(null)}
+                        onToggleMode={() => toggleSignupMode('admin')}
                     />
                 </div>
             </div>
