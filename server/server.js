@@ -195,6 +195,15 @@ app.use('/api/*', (req, res) => {
     });
 });
 
+// Serve React Frontend (Static Files)
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
+// Handle React Routing (SPA) - Return index.html for all non-API routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
+});
+
 // Global error handler
 app.use((err, req, res, next) => {
     console.error('Server Error:', err);

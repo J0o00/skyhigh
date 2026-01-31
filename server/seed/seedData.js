@@ -41,6 +41,13 @@ const users = [
         password: 'agent123',
         role: 'agent',
         isActive: true
+    },
+    {
+        name: 'Demo Client',
+        email: 'client@conversaiq.com',
+        password: 'client123',
+        role: 'client',
+        isActive: true
     }
 ];
 

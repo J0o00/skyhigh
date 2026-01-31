@@ -49,3 +49,26 @@ Follow this guide to deploy your application to the professional cloud.
 
 ## ✅ Done!
 Your app is now live. Open the Vercel URL to test it.
+
+---
+
+## 📚 Appendix: How to get MongoDB Atlas (Free)
+Since your Render backend is in the cloud, it cannot connect to the MongoDB on your laptop. You need a free cloud database.
+
+1.  **Sign Up**: Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) and register (Free).
+2.  **Create Cluster**: Select **M0 Free** (Shared) -> Create.
+3.  **Create User**:
+    *   Go to **Database Access** (sidebar).
+    *   Add New Database User -> Password Authentication.
+    *   Username: `admin`, Password: `(create a strong password)`.
+    *   **Save this password!**
+4.  **Allow Network Access** (Critical):
+    *   Go to **Network Access** (sidebar).
+    *   Add IP Address -> **Allow Access From Anywhere** (`0.0.0.0/0`).
+    *   Confirm.
+5.  **Get Configuration String**:
+    *   Go to **Database** (sidebar) -> Click **Connect**.
+    *   Select **Drivers** (Node.js).
+    *   Copy the string: `mongodb+srv://admin:<password>@cluster0...`
+    *   Replace `<password>` with your actual password.
+    *   **Use this string for the `MONGO_URI` in Render.**
