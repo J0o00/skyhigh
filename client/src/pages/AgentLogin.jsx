@@ -42,105 +42,68 @@ function AgentLogin() {
     };
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px'
-        }}>
-            <div style={{
-                width: '100%',
-                maxWidth: '420px'
-            }}>
+        <div className="flex flex-col min-h-screen bg-black relative overflow-hidden items-center justify-center p-4 font-sans selection:bg-purple-500/30 selection:text-purple-500">
+            {/* Ambient Mesh Gradient Background */}
+            <div className="absolute inset-0 z-0 bg-cyber-grid pointer-events-none opacity-20"></div>
+
+            {/* Atmospheric Background Blobs - Agent is Purple/Violet */}
+            <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none animate-blob-float"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-[45vw] h-[45vw] bg-violet-500/10 rounded-full blur-[100px] pointer-events-none animate-blob-float [animation-delay:-5s]"></div>
+
+            <div className="relative z-10 w-full max-w-[440px] flex flex-col">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate('/')}
-                    style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        marginBottom: '24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '0.9375rem'
-                    }}
+                    className="flex items-center gap-2 text-gray-500 hover:text-white mb-8 transition-colors text-xs font-bold uppercase tracking-widest self-start group"
                 >
-                    ← Back to roles
+                    <span className="group-hover:-translate-x-1 transition-transform">←</span> Back
                 </button>
 
-                {/* Card */}
-                <div style={{
-                    background: 'rgba(30, 41, 59, 0.8)',
-                    borderRadius: '20px',
-                    padding: '40px',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }}>
+                {/* iOS Glass Card */}
+                <div className="relative glass-ios rounded-[40px] p-10 shadow-2xl overflow-hidden isolation-auto">
                     {/* Header */}
-                    <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                        <div style={{
-                            width: '64px',
-                            height: '64px',
-                            margin: '0 auto 16px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '1.75rem'
-                        }}>
+                    <div className="text-center mb-10 relative z-10">
+                        <div className="w-20 h-20 mx-auto mb-6 rounded-[24px] bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-4xl shadow-[0_0_30px_rgba(168,85,247,0.15)] text-purple-500">
                             🎧
                         </div>
-                        <h1 style={{
-                            fontSize: '1.5rem',
-                            fontWeight: 700,
-                            color: '#f8fafc',
-                            marginBottom: '4px'
-                        }}>
-                            Agent Portal
+                        <h1 className="text-3xl font-nasalization text-white mb-2 tracking-wide">
+                            Agent Workspace
                         </h1>
-                        <p style={{ color: '#94a3b8', fontSize: '0.9375rem' }}>
-                            Sign in to help customers
+                        <p className="text-gray-400 text-sm font-medium tracking-wide">
+                            Customer Support Access
                         </p>
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit}>
-                        <div className="form-group">
-                            <label className="form-label">Email</label>
-                            <input
-                                type="email"
-                                className="form-input"
-                                placeholder="agent@company.com"
-                                value={formData.email}
-                                onChange={(e) => handleChange('email', e.target.value)}
-                            />
+                    <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Email Address</label>
+                            <div className="relative group">
+                                <input
+                                    type="email"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:outline-none focus:bg-white/10 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-medium"
+                                    placeholder="agent@conversaiq.com"
+                                    value={formData.email}
+                                    onChange={(e) => handleChange('email', e.target.value)}
+                                />
+                            </div>
                         </div>
 
-                        <div className="form-group">
-                            <label className="form-label">Password</label>
-                            <input
-                                type="password"
-                                className="form-input"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={(e) => handleChange('password', e.target.value)}
-                            />
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Password</label>
+                            <div className="relative group">
+                                <input
+                                    type="password"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:outline-none focus:bg-white/10 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-medium"
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={(e) => handleChange('password', e.target.value)}
+                                />
+                            </div>
                         </div>
 
                         {error && (
-                            <div style={{
-                                background: 'rgba(239, 68, 68, 0.15)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                color: '#ef4444',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                marginBottom: '16px',
-                                fontSize: '0.875rem'
-                            }}>
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-2xl text-xs font-medium flex items-center gap-2">
                                 ⚠️ {error}
                             </div>
                         )}
@@ -148,30 +111,21 @@ function AgentLogin() {
                         <button
                             type="submit"
                             disabled={loading}
-                            style={{
-                                width: '100%',
-                                padding: '14px',
-                                background: loading ? '#475569' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                                border: 'none',
-                                borderRadius: '10px',
-                                color: 'white',
-                                fontSize: '1rem',
-                                fontWeight: 600,
-                                cursor: loading ? 'not-allowed' : 'pointer'
-                            }}
+                            className={`w-full py-4 rounded-2xl font-bold text-base tracking-wide shadow-lg transition-all duration-300 transform hover:-translate-y-1 overflow-hidden relative
+                                ${loading
+                                    ? 'bg-gray-800 cursor-not-allowed text-gray-500'
+                                    : 'bg-gradient-to-r from-purple-500 to-violet-600 text-white hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]'}`}
                         >
-                            {loading ? 'Signing in...' : 'Sign In'}
+                            <span className="relative z-10">{loading ? 'Connecting...' : 'Enter Workspace'}</span>
+                            <div className="absolute inset-0 bg-white/20 translate-y-full hover:translate-y-0 transition-transform duration-300"></div>
                         </button>
                     </form>
 
-                    <p style={{
-                        textAlign: 'center',
-                        marginTop: '24px',
-                        color: '#64748b',
-                        fontSize: '0.875rem'
-                    }}>
-                        Agent accounts are created by admins
-                    </p>
+                    <div className="mt-8 text-center">
+                        <p className="text-[10px] text-gray-600 font-mono uppercase tracking-[0.2em] opacity-50">
+                            Restricted to authorized personnel
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -179,3 +133,4 @@ function AgentLogin() {
 }
 
 export default AgentLogin;
+

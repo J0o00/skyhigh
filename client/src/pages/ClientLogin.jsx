@@ -52,131 +52,98 @@ function ClientLogin() {
     };
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px'
-        }}>
-            <div style={{
-                width: '100%',
-                maxWidth: '420px'
-            }}>
+        <div className="flex flex-col min-h-screen bg-black relative overflow-hidden items-center justify-center p-4 font-sans selection:bg-cyan-500/30 selection:text-cyan-500">
+            {/* Ambient Mesh Gradient Background */}
+            <div className="absolute inset-0 z-0 bg-cyber-grid pointer-events-none opacity-20"></div>
+
+            {/* Atmospheric Background Blobs - Client is Cyan/Blue */}
+            <div className="absolute top-[-20%] left-[20%] w-[50vw] h-[50vw] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none animate-blob-float"></div>
+            <div className="absolute bottom-[-10%] right-[10%] w-[40vw] h-[40vw] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none animate-blob-float [animation-delay:-3s]"></div>
+
+            <div className="relative z-10 w-full max-w-[440px] flex flex-col">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate('/')}
-                    style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        marginBottom: '24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '0.9375rem'
-                    }}
+                    className="flex items-center gap-2 text-gray-500 hover:text-white mb-8 transition-colors text-xs font-bold uppercase tracking-widest self-start group"
                 >
-                    ← Back to roles
+                    <span className="group-hover:-translate-x-1 transition-transform">←</span> Back
                 </button>
 
-                {/* Card */}
-                <div style={{
-                    background: 'rgba(30, 41, 59, 0.8)',
-                    borderRadius: '20px',
-                    padding: '40px',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }}>
+                {/* iOS Glass Card */}
+                <div className="relative glass-ios rounded-[40px] p-10 shadow-2xl overflow-hidden isolation-auto">
                     {/* Header */}
-                    <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                        <div style={{
-                            width: '64px',
-                            height: '64px',
-                            margin: '0 auto 16px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '1.75rem'
-                        }}>
+                    <div className="text-center mb-10 relative z-10">
+                        <div className="w-20 h-20 mx-auto mb-6 rounded-[24px] bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-4xl shadow-[0_0_30px_rgba(0,212,255,0.15)] text-cyan-400">
                             👤
                         </div>
-                        <h1 style={{
-                            fontSize: '1.5rem',
-                            fontWeight: 700,
-                            color: '#f8fafc',
-                            marginBottom: '4px'
-                        }}>
-                            {isRegister ? 'Create Account' : 'Welcome Back'}
+                        <h1 className="text-3xl font-nasalization text-white mb-2 tracking-wide">
+                            {isRegister ? 'Create Account' : 'Client Portal'}
                         </h1>
-                        <p style={{ color: '#94a3b8', fontSize: '0.9375rem' }}>
-                            {isRegister ? 'Sign up as a client' : 'Sign in to your account'}
+                        <p className="text-gray-400 text-sm font-medium tracking-wide">
+                            {isRegister ? 'Join our secure platform' : 'Access your dashboard'}
                         </p>
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} className="relative z-10 space-y-5">
                         {isRegister && (
-                            <div className="form-group">
-                                <label className="form-label">Full Name *</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="John Doe"
-                                    value={formData.name}
-                                    onChange={(e) => handleChange('name', e.target.value)}
-                                />
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Full Name</label>
+                                <div className="relative group">
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:outline-none focus:bg-white/10 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all font-medium"
+                                        placeholder="John Doe"
+                                        value={formData.name}
+                                        onChange={(e) => handleChange('name', e.target.value)}
+                                    />
+                                </div>
                             </div>
                         )}
 
-                        <div className="form-group">
-                            <label className="form-label">Email *</label>
-                            <input
-                                type="email"
-                                className="form-input"
-                                placeholder="you@example.com"
-                                value={formData.email}
-                                onChange={(e) => handleChange('email', e.target.value)}
-                            />
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Email Address</label>
+                            <div className="relative group">
+                                <input
+                                    type="email"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:outline-none focus:bg-white/10 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all font-medium"
+                                    placeholder="you@example.com"
+                                    value={formData.email}
+                                    onChange={(e) => handleChange('email', e.target.value)}
+                                />
+                            </div>
                         </div>
 
                         {isRegister && (
-                            <div className="form-group">
-                                <label className="form-label">Phone (Optional)</label>
-                                <input
-                                    type="tel"
-                                    className="form-input"
-                                    placeholder="+91 98765 43210"
-                                    value={formData.phone}
-                                    onChange={(e) => handleChange('phone', e.target.value)}
-                                />
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Phone (Optional)</label>
+                                <div className="relative group">
+                                    <input
+                                        type="tel"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:outline-none focus:bg-white/10 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all font-medium"
+                                        placeholder="+1 (555) 000-0000"
+                                        value={formData.phone}
+                                        onChange={(e) => handleChange('phone', e.target.value)}
+                                    />
+                                </div>
                             </div>
                         )}
 
-                        <div className="form-group">
-                            <label className="form-label">Password *</label>
-                            <input
-                                type="password"
-                                className="form-input"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={(e) => handleChange('password', e.target.value)}
-                            />
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Password</label>
+                            <div className="relative group">
+                                <input
+                                    type="password"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:outline-none focus:bg-white/10 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all font-medium"
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={(e) => handleChange('password', e.target.value)}
+                                />
+                            </div>
                         </div>
 
                         {error && (
-                            <div style={{
-                                background: 'rgba(239, 68, 68, 0.15)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                color: '#ef4444',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                marginBottom: '16px',
-                                fontSize: '0.875rem'
-                            }}>
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-2xl text-xs font-medium flex items-center gap-2">
                                 ⚠️ {error}
                             </div>
                         )}
@@ -184,46 +151,31 @@ function ClientLogin() {
                         <button
                             type="submit"
                             disabled={loading}
-                            style={{
-                                width: '100%',
-                                padding: '14px',
-                                background: loading ? '#475569' : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                                border: 'none',
-                                borderRadius: '10px',
-                                color: 'white',
-                                fontSize: '1rem',
-                                fontWeight: 600,
-                                cursor: loading ? 'not-allowed' : 'pointer'
-                            }}
+                            className={`w-full py-4 rounded-2xl font-bold text-base tracking-wide shadow-lg transition-all duration-300 transform hover:-translate-y-1 overflow-hidden relative
+                                ${loading
+                                    ? 'bg-gray-800 cursor-not-allowed text-gray-500'
+                                    : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]'}`}
                         >
-                            {loading ? 'Please wait...' : (isRegister ? 'Create Account' : 'Sign In')}
+                            <span className="relative z-10">{loading ? 'Processing...' : (isRegister ? 'Create Account' : 'Secure Login')}</span>
+                            <div className="absolute inset-0 bg-white/20 translate-y-full hover:translate-y-0 transition-transform duration-300"></div>
                         </button>
                     </form>
 
                     {/* Toggle */}
-                    <p style={{
-                        textAlign: 'center',
-                        marginTop: '24px',
-                        color: '#94a3b8',
-                        fontSize: '0.9375rem'
-                    }}>
-                        {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-                        <button
-                            onClick={() => {
-                                setIsRegister(!isRegister);
-                                setError('');
-                            }}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#06b6d4',
-                                cursor: 'pointer',
-                                fontWeight: 600
-                            }}
-                        >
-                            {isRegister ? 'Sign In' : 'Sign Up'}
-                        </button>
-                    </p>
+                    <div className="mt-8 text-center relative z-10">
+                        <p className="text-gray-400 text-xs font-medium">
+                            {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
+                            <button
+                                onClick={() => {
+                                    setIsRegister(!isRegister);
+                                    setError('');
+                                }}
+                                className="text-cyan-400 font-bold hover:text-white transition-colors ml-1 focus:outline-none uppercase tracking-wider text-[10px]"
+                            >
+                                {isRegister ? 'Sign In' : 'Sign Up'}
+                            </button>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -231,3 +183,4 @@ function ClientLogin() {
 }
 
 export default ClientLogin;
+

@@ -59,7 +59,7 @@ function ClientDashboard() {
                 justifyContent: 'space-between',
                 alignItems: 'center'
             }}>
-                <div style={{
+                <div className="font-display" style={{
                     fontSize: '1.25rem',
                     fontWeight: 700,
                     background: 'linear-gradient(135deg, #818cf8 0%, #06b6d4 100%)',

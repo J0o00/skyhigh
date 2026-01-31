@@ -60,6 +60,8 @@ function Login() {
                 <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
                     <h1 style={{
                         fontSize: '1.75rem',
+                        fontFamily: "'SF Display Thin', var(--font-family)",
+                        fontWeight: 100,
                         background: 'linear-gradient(135deg, var(--primary-400) 0%, var(--accent-cyan) 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
