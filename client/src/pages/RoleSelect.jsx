@@ -14,7 +14,8 @@ const AuthWidget = ({
     onInputChange,
     onSubmit,
     onBack,
-    onToggleMode
+    onToggleMode,
+    canSignup = true
 }) => {
     return (
         <div
@@ -101,13 +102,15 @@ const AuthWidget = ({
                             {formState.loading ? '...' : (isSignup ? 'Sign Up' : 'Login')}
                         </button>
 
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); onToggleMode(); }}
-                            className="text-white/60 hover:text-white/90 text-sm transition-colors duration-300 py-1"
-                        >
-                            {isSignup ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
-                        </button>
+                        {canSignup && (
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); onToggleMode(); }}
+                                className="text-white/60 hover:text-white/90 text-sm transition-colors duration-300 py-1"
+                            >
+                                {isSignup ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
+                            </button>
+                        )}
 
                         <button
                             type="button"
@@ -216,10 +219,9 @@ function RoleSelect() {
 
                 {/* Floating Glass Title */}
                 <div className="mb-24 relative group">
-                    <div className="absolute inset-0 bg-white/5 blur-2xl rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-1000"></div>
-                    <h1 className="text-5xl md:text-6xl font-semibold text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 tracking-tight pb-2 relative z-10"
-                        style={{ textShadow: '0 0 30px rgba(255,255,255,0.1)' }}>
-                        ConversaIQ
+                    <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-1000"></div>
+                    <h1 className="title-glossy text-5xl md:text-7xl font-normal tracking-[0.2em] pb-4 relative z-10">
+                        CONVERSAIQ
                     </h1>
                 </div>
 
@@ -251,6 +253,7 @@ function RoleSelect() {
                         onSubmit={handleSubmit}
                         onBack={() => setSelectedRole(null)}
                         onToggleMode={() => toggleSignupMode('agent')}
+                        canSignup={false}
                     />
 
                     <AuthWidget
@@ -265,6 +268,7 @@ function RoleSelect() {
                         onSubmit={handleSubmit}
                         onBack={() => setSelectedRole(null)}
                         onToggleMode={() => toggleSignupMode('admin')}
+                        canSignup={false}
                     />
                 </div>
             </div>

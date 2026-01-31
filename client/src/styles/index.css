@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+/* Nasalization Font */
+@font-face {
+  font-family: 'Nasalization';
+  src: url('/fonts/nasalization/Nasalization Rg.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* iPhone Glossy Liquid Title */
+.title-glossy {
+  font-family: 'Nasalization', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.15em;
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0.9) 30%,
+      rgba(255, 255, 255, 0.7) 50%,
+      rgba(200, 200, 200, 0.6) 70%,
+      rgba(150, 150, 150, 0.5) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  position: relative;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+
+
 @layer base {
   body {
     background-color: #020202;
