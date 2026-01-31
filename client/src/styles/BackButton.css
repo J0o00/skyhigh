@@ -1,0 +1,60 @@
+/* Crystalline & Z-Axis Float Animations for Back Button */
+@keyframes edgeGlowCycle {
+    0% {
+        box-shadow: 0 0 5px rgba(6, 182, 212, 0.5), inset 0 0 10px rgba(6, 182, 212, 0.2);
+        border-color: rgba(6, 182, 212, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 5px rgba(236, 72, 153, 0.5), inset 0 0 10px rgba(236, 72, 153, 0.2);
+        border-color: rgba(236, 72, 153, 0.4);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(6, 182, 212, 0.5), inset 0 0 10px rgba(6, 182, 212, 0.2);
+        border-color: rgba(6, 182, 212, 0.4);
+    }
+}
+
+@keyframes microFloat {
+
+    0%,
+    100% {
+        transform: translateY(0) translateZ(0);
+    }
+
+    50% {
+        transform: translateY(-4px) translateZ(20px);
+    }
+}
+
+.back-btn-crystalline {
+    /* Frosted Crystalline Texture */
+    background: rgba(255, 255, 255, 0.05);
+    /* Very subtle base for crystal look */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    /* Smooth rounded corners */
+
+    /* Animations */
+    /* Animations Removed */
+
+    /* Simulating Zero-Gravity Suspension feeling */
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform-style: preserve-3d;
+    perspective: 1000px;
+}
+
+.back-btn-crystalline:hover {
+    transform: translateY(-2px) scale(1.05);
+}
+
+.hover-pop {
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.2s ease;
+}
+
+.hover-pop:hover {
+    transform: translateY(-2px) scale(1.05);
+}

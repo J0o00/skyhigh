@@ -4,9 +4,83 @@
  * Main dashboard for logged-in clients with Chat, Email, Call options.
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+// Widget with 3D Tilt Effect
+const DashboardWidget = ({ opt, i, navigate }) => {
+    const cardRef = useRef(null);
+
+    const handleMouseMove = (e) => {
+        if (!cardRef.current) return;
+
+        const rect = cardRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        // Calculate rotation (max 15 degrees)
+        const rotateX = ((y - centerY) / centerY) * -15;
+        const rotateY = ((x - centerX) / centerX) * 15;
+
+        // Calculate shimmer intensity
+        const shimmerOpacity = 0.4 + (Math.abs(rotateX) + Math.abs(rotateY)) / 40;
+
+        cardRef.current.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+
+        // Update shimmer
+        const shimmer = cardRef.current.querySelector('.shimmer-overlay');
+        if (shimmer) {
+            shimmer.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,${shimmerOpacity}) 0%, transparent 60%)`;
+            shimmer.style.opacity = 1;
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (!cardRef.current) return;
+        cardRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        const shimmer = cardRef.current.querySelector('.shimmer-overlay');
+        if (shimmer) {
+            shimmer.style.opacity = 0;
+        }
+    };
+
+    return (
+        <button
+            ref={cardRef}
+            onClick={() => navigate(opt.path)}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className="glass-liquid p-8 rounded-2xl text-center group transition-all duration-300 w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] max-w-[350px] relative overflow-hidden transform-gpu"
+            style={{
+                animationDelay: `${i * 100}ms`,
+                transformStyle: 'preserve-3d',
+                transition: 'transform 0.1s ease-out'
+            }}
+        >
+            {/* Shimmer Overlay */}
+            <div className="shimmer-overlay absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-0 z-0" />
+
+            <div className="relative z-10 pointer-events-none flex flex-col items-center">
+                <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 p-1">
+                    {opt.image ? (
+                        <img src={opt.image} alt={opt.title} className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(32,224,120,0.5)]" />
+                    ) : (
+                        opt.icon
+                    )}
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2 group-hover:text-[#20e078] transition-colors">
+                    {opt.title}
+                </h2>
+                <p className="text-white/50 text-sm">
+                    {opt.description}
+                </p>
+            </div>
+        </button>
+    );
+};
 
 function ClientDashboard() {
     const { user, logout } = useAuth();
@@ -22,7 +96,7 @@ function ClientDashboard() {
         {
             id: 'chat',
             title: 'Live Chat',
-            icon: '💬',
+            image: '/white-chat-dots-thin.svg',
             description: 'Chat with our support team in real-time',
             gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
             path: '/client/chat'
@@ -30,23 +104,16 @@ function ClientDashboard() {
         {
             id: 'email',
             title: 'Send Email',
-            icon: '📧',
+            image: '/white-envelope-thin.svg',
             description: 'Send us an email inquiry',
-            gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             path: '/client/email'
         },
-        {
-            id: 'call',
-            title: 'Voice Call',
-            icon: '📞',
-            description: 'Simulated voice call with TTS',
-            gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            path: '/client/call'
-        },
+
         {
             id: 'webrtc',
             title: 'WebRTC Call',
-            icon: '🎧',
+            image: '/white-phone-call-thin.svg',
             description: 'Real-time voice call with live transcription',
             gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
             path: '/client/webrtc-call'
@@ -54,43 +121,20 @@ function ClientDashboard() {
     ];
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
-        }}>
+        <div className="relative min-h-screen">
             {/* Header */}
-            <nav style={{
-                background: 'rgba(15, 23, 42, 0.95)',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                padding: '16px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-            }}>
-                <div className="font-display" style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #818cf8 0%, #06b6d4 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                }}>
-                    ConversaIQ
+            <nav className="glass-defi border-b border-white/5 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+                <div className="title-plain text-xl font-bold">
+                    Echo
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <span style={{ color: '#94a3b8' }}>
-                        Welcome, <strong style={{ color: '#f8fafc' }}>{user?.name?.split(' ')[0]}</strong>
+                <div className="flex items-center gap-4">
+                    <span className="text-white/90 text-xl tracking-wide">
+                        Welcome, <strong className="text-[#20e078] font-bold">{user?.name?.split(' ')[0]}</strong>
                     </span>
                     <button
                         onClick={handleLogout}
-                        style={{
-                            background: 'transparent',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            color: '#94a3b8',
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            cursor: 'pointer'
-                        }}
+                        className="px-4 py-2 rounded-lg text-sm text-white/60 border border-white/10 hover:bg-white/5 hover:text-white transition-all"
                     >
                         Logout
                     </button>
@@ -98,99 +142,35 @@ function ClientDashboard() {
             </nav>
 
             {/* Main Content */}
-            <main style={{
-                maxWidth: '1000px',
-                margin: '0 auto',
-                padding: '48px 24px'
-            }}>
+            <main className="max-w-5xl mx-auto px-6 py-12">
                 {/* Welcome */}
-                <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-                    <h1 style={{
-                        fontSize: '2rem',
-                        fontWeight: 700,
-                        color: '#f8fafc',
-                        marginBottom: '8px'
-                    }}>
+                <div className="text-center mb-12 animate-fade-in">
+                    <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">
                         How can we help you today?
                     </h1>
-                    <p style={{ color: '#94a3b8', fontSize: '1.125rem' }}>
+                    <p className="text-white/60 text-lg">
                         Choose how you'd like to connect with us
                     </p>
                 </div>
 
                 {/* Options Grid */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                    gap: '24px'
-                }}>
-                    {options.map(opt => (
-                        <button
+                <div className="flex flex-wrap justify-center gap-6">
+                    {options.map((opt, i) => (
+                        <DashboardWidget
                             key={opt.id}
-                            onClick={() => navigate(opt.path)}
-                            style={{
-                                background: 'rgba(30, 41, 59, 0.7)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '16px',
-                                padding: '32px',
-                                cursor: 'pointer',
-                                textAlign: 'center',
-                                transition: 'all 0.3s ease'
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-4px)';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                            }}
-                        >
-                            <div style={{
-                                width: '72px',
-                                height: '72px',
-                                margin: '0 auto 16px',
-                                borderRadius: '50%',
-                                background: opt.gradient,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '2rem'
-                            }}>
-                                {opt.icon}
-                            </div>
-                            <h2 style={{
-                                fontSize: '1.25rem',
-                                fontWeight: 600,
-                                color: '#f8fafc',
-                                marginBottom: '8px'
-                            }}>
-                                {opt.title}
-                            </h2>
-                            <p style={{ color: '#94a3b8', fontSize: '0.9375rem', margin: 0 }}>
-                                {opt.description}
-                            </p>
-                        </button>
+                            opt={opt}
+                            i={i}
+                            navigate={navigate}
+                        />
                     ))}
                 </div>
 
                 {/* Recent Interactions Preview */}
-                <div style={{
-                    marginTop: '48px',
-                    background: 'rgba(30, 41, 59, 0.5)',
-                    borderRadius: '16px',
-                    padding: '24px',
-                    border: '1px solid rgba(255,255,255,0.05)'
-                }}>
-                    <h3 style={{
-                        fontSize: '1.125rem',
-                        fontWeight: 600,
-                        color: '#f8fafc',
-                        marginBottom: '16px'
-                    }}>
-                        Your Recent Activity
+                <div className="mt-12 glass-defi rounded-2xl p-8 border border-white/5">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span className="text-[#20e078]">⚡</span> Your Recent Activity
                     </h3>
-                    <p style={{ color: '#64748b', fontSize: '0.9375rem' }}>
+                    <p className="text-white/40 text-sm">
                         Start a conversation to see your interaction history here.
                     </p>
                 </div>

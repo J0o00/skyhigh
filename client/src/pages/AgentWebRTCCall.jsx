@@ -15,6 +15,7 @@ import { useWebRTC } from '../hooks/useWebRTC';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { api } from '../services/api';
 import { io } from 'socket.io-client';
+import '../styles/BackButton.css';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
 
@@ -81,6 +82,7 @@ function AgentWebRTCCall() {
         }
     });
 
+
     // Emit transcript chunks when socket and sessionId are available
     useEffect(() => {
         if (!socket || !sessionId) return;
@@ -100,6 +102,7 @@ function AgentWebRTCCall() {
                             timestamp: new Date()
                         });
                     }
+
                 });
                 lastTranscriptLength.current = transcript.length;
             }
@@ -266,131 +269,105 @@ function AgentWebRTCCall() {
     }, []);
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-            color: '#f8fafc'
-        }}>
+        <div className="relative min-h-screen bg-[#0a0f0d] text-white flex flex-col font-sf-display-light">
             {/* Header */}
-            <nav style={{
-                background: 'rgba(15, 23, 42, 0.95)',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                padding: '16px 24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px'
-            }}>
-                <button
-                    onClick={() => {
-                        if (status === 'connected') {
-                            if (window.confirm('End the call?')) {
-                                handleEndCall();
+            <nav className="glass-defi border-b border-white/5 px-6 py-4 flex items-center justify-between z-50">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => {
+                            if (status === 'connected') {
+                                if (window.confirm('End the call?')) {
+                                    handleEndCall();
+                                    navigate('/agent/dashboard');
+                                }
+                            } else {
                                 navigate('/agent/dashboard');
                             }
-                        } else {
-                            navigate('/agent/dashboard');
-                        }
-                    }}
-                    style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        fontSize: '1.25rem'
-                    }}
-                >
-                    ←
-                </button>
-                <div style={{ flex: 1 }}>
-                    <h1 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
-                        🎧 Agent Call Center
-                    </h1>
-                    {status === 'connected' && (
-                        <span style={{ fontSize: '0.875rem', color: '#10b981' }}>
-                            🔴 {formatDuration(callDuration)}
-                        </span>
-                    )}
+                        }}
+                        className="hover-pop px-5 py-2 flex items-center gap-2 hover:bg-white/20 transition-all text-sm font-medium"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '24px',
+                            color: 'white',
+                            letterSpacing: '0.03em'
+                        }}
+                    >
+                        <img src="/white-back-arrow.svg" alt="Back" style={{ width: '16px', height: '16px' }} />
+                        Back
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <svg style={{ width: '24px', height: '24px', color: '#f8fafc' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                        </svg>
+                        <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', margin: 0, letterSpacing: '0.1em' }}>
+                            Agent Call Center
+                        </h1>
+                    </div>
                 </div>
+
+                {status === 'connected' && (
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 animate-pulse">
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                        <span className="text-red-400 font-mono font-bold tracking-widest text-sm">
+                            LIVE {formatDuration(callDuration)}
+                        </span>
+                    </div>
+                )}
             </nav>
 
             <audio ref={remoteAudioRef} autoPlay />
 
-            <main style={{
-                padding: '24px',
-                display: 'grid',
-                gridTemplateColumns: status === 'connected' ? '1fr 300px' : '1fr',
-                gap: '24px',
-                maxWidth: '1200px',
-                margin: '0 auto'
-            }}>
-                {/* Main call area */}
-                <div>
-                    {/* Idle - Show pending calls */}
+            <main className={`flex-1 p-6 grid gap-6 max-w-[1600px] mx-auto w-full ${status === 'connected' ? 'grid-cols-1 lg:grid-cols-[1fr_400px]' : 'grid-cols-1'}`}>
+
+                {/* Main Call Area */}
+                <div className="flex flex-col gap-6">
+                    {/* Idle - Pending Calls */}
                     {status === 'idle' && (
-                        <div>
-                            <h2 style={{ marginBottom: '24px' }}>Incoming Calls</h2>
+                        <div className="glass-liquid rounded-3xl p-8 border border-white/5 min-h-[600px] flex flex-col">
+                            <h2 className="text-2xl font-bold text-white mb-6 border-b border-white/5 pb-4">
+                                Incoming Queue <span className="text-[#20e078]">({pendingCalls.length})</span>
+                            </h2>
 
                             {pendingCalls.length === 0 ? (
-                                <div style={{
-                                    textAlign: 'center',
-                                    padding: '60px 20px',
-                                    background: 'rgba(30, 41, 59, 0.3)',
-                                    borderRadius: '12px'
-                                }}>
-                                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📞</div>
-                                    <p style={{ color: '#94a3b8' }}>No pending calls. Waiting for customers...</p>
+                                <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                                    <div className="w-24 h-24 mb-6 rounded-full bg-white/5 flex items-center justify-center text-4xl animate-pulse-slow">
+                                        📡
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Systems Online</h3>
+                                    <p className="text-white/60">Waiting for incoming signals...</p>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div className="grid gap-4">
                                     {pendingCalls.map((call) => (
-                                        <div key={call.sessionId} style={{
-                                            background: 'rgba(30, 41, 59, 0.5)',
-                                            borderRadius: '12px',
-                                            padding: '20px',
-                                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                                            animation: 'glow 2s infinite'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div>
-                                                    <div style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '4px' }}>
-                                                        📞 Incoming Call
+                                        <div key={call.sessionId} className="glass-defi p-6 rounded-2xl border-l-4 border-l-[#20e078] relative overflow-hidden group">
+                                            <div className="absolute inset-0 bg-[#20e078]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="relative flex justify-between items-center">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-full bg-[#20e078]/20 flex items-center justify-center text-xl animate-bounce">
+                                                        📞
                                                     </div>
-                                                    <div style={{ color: '#94a3b8', fontSize: '0.875rem' }}>
-                                                        {call.callerName || call.customer?.name || 'Unknown Caller'}
-                                                        {call.callerPhone && (
-                                                            <span style={{ marginLeft: '8px', opacity: 0.7 }}>
-                                                                📱 {call.callerPhone}
-                                                            </span>
-                                                        )}
+                                                    <div>
+                                                        <div className="text-lg font-bold text-white mb-1">
+                                                            {call.callerName || call.customer?.name || 'Unknown Caller'}
+                                                        </div>
+                                                        <div className="text-sm text-[#20e078] font-mono">
+                                                            INCOMING CALL REQUEST...
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '12px' }}>
-                                                    <button
-                                                        onClick={() => handleAcceptCall(call)}
-                                                        style={{
-                                                            padding: '10px 24px',
-                                                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                                            border: 'none',
-                                                            borderRadius: '8px',
-                                                            color: 'white',
-                                                            fontWeight: 500,
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        Accept
-                                                    </button>
+                                                <div className="flex gap-4">
                                                     <button
                                                         onClick={() => handleRejectCall(call)}
-                                                        style={{
-                                                            padding: '10px 24px',
-                                                            background: 'rgba(239, 68, 68, 0.2)',
-                                                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                                                            borderRadius: '8px',
-                                                            color: '#f87171',
-                                                            cursor: 'pointer'
-                                                        }}
+                                                        className="px-6 py-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors uppercase tracking-wider font-bold text-xs"
                                                     >
-                                                        Reject
+                                                        Decline
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAcceptCall(call)}
+                                                        className="btn-liquid px-8 py-3 flex items-center gap-2"
+                                                    >
+                                                        Accept Call
                                                     </button>
                                                 </div>
                                             </div>
@@ -398,178 +375,116 @@ function AgentWebRTCCall() {
                                     ))}
                                 </div>
                             )}
-                            <style>{`@keyframes glow { 0%, 100% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.3); } 50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }}`}</style>
                         </div>
                     )}
 
                     {/* Connecting */}
                     {status === 'connecting' && (
-                        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                            <div style={{
-                                width: '80px',
-                                height: '80px',
-                                borderRadius: '50%',
-                                border: '4px solid rgba(16, 185, 129, 0.2)',
-                                borderTopColor: '#10b981',
-                                animation: 'spin 1s linear infinite',
-                                margin: '0 auto 24px'
-                            }} />
-                            <h3>Connecting to customer...</h3>
-                            <style>{`@keyframes spin { to { transform: rotate(360deg); }}`}</style>
+                        <div className="glass-liquid rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[600px]">
+                            <div className="relative">
+                                <div className="w-24 h-24 border-4 border-[#20e078]/30 border-t-[#20e078] rounded-full animate-spin mb-8" />
+                                <div className="absolute inset-0 flex items-center justify-center text-3xl">
+                                    🤝
+                                </div>
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-2">Establishing Secure Link</h3>
+                            <p className="text-white/40 font-mono">Connecting to customer stream...</p>
                         </div>
                     )}
 
-                    {/* Connected - Active call */}
+                    {/* Connected - Active Interface */}
                     {status === 'connected' && (
-                        <div>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '16px',
-                                marginBottom: '24px'
-                            }}>
-                                <div style={{
-                                    width: '12px',
-                                    height: '12px',
-                                    borderRadius: '50%',
-                                    background: '#10b981',
-                                    animation: 'pulse 2s infinite'
-                                }} />
-                                <span style={{ fontWeight: 500 }}>On Call with {callerName || customer?.name || 'Customer'}</span>
-                                <span style={{ color: '#94a3b8' }}>{formatDuration(callDuration)}</span>
-                                <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; }}`}</style>
-                            </div>
-
-                            {/* Transcript */}
-                            <div style={{
-                                background: 'rgba(30, 41, 59, 0.5)',
-                                borderRadius: '12px',
-                                padding: '16px',
-                                marginBottom: '24px',
-                                height: '350px',
-                                overflowY: 'auto'
-                            }} ref={transcriptRef}>
-                                <h4 style={{ color: '#94a3b8', marginBottom: '12px', fontSize: '0.875rem' }}>
-                                    📝 Live Transcript
-                                </h4>
-                                {transcript.length === 0 && !speechRecognition.interimTranscript && (
-                                    <p style={{ color: '#64748b', fontStyle: 'italic' }}>
-                                        Listening for speech...
-                                    </p>
-                                )}
-                                {transcript.map((t, i) => (
-                                    <div key={i} style={{
-                                        marginBottom: '8px',
-                                        padding: '8px 12px',
-                                        borderRadius: '8px',
-                                        background: t.speaker === 'agent'
-                                            ? 'rgba(99, 102, 241, 0.1)'
-                                            : 'rgba(16, 185, 129, 0.1)'
-                                    }}>
-                                        <span style={{
-                                            fontSize: '0.75rem',
-                                            color: t.speaker === 'agent' ? '#818cf8' : '#10b981',
-                                            fontWeight: 500
-                                        }}>
-                                            {t.speaker === 'agent' ? '🎧 Agent' : '👤 Client'}
-                                        </span>
-                                        <p style={{ margin: '4px 0 0' }}>{t.text}</p>
+                        <div className="flex flex-col h-full gap-6">
+                            {/* Live Transcript Panel */}
+                            <div className="glass-defi flex-1 rounded-3xl p-6 border border-white/5 relative overflow-hidden flex flex-col min-h-[500px]">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#20e078] to-transparent opacity-50" />
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="flex items-center gap-2 text-[#20e078] font-bold uppercase tracking-widest text-xs">
+                                        <span className="w-2 h-2 rounded-full bg-[#20e078] animate-pulse" />
+                                        Live Voice Transcription
+                                    </h3>
+                                    <div className="flex gap-2">
+                                        <span className="px-2 py-1 rounded bg-white/5 text-[10px] text-white/40 font-mono">EN-US</span>
+                                        <span className="px-2 py-1 rounded bg-white/5 text-[10px] text-white/40 font-mono">SECURE</span>
                                     </div>
-                                ))}
-                                {speechRecognition.interimTranscript && (
-                                    <div style={{
-                                        padding: '8px 12px',
-                                        borderRadius: '8px',
-                                        background: 'rgba(99, 102, 241, 0.05)',
-                                        color: '#94a3b8',
-                                        fontStyle: 'italic'
-                                    }}>
-                                        {speechRecognition.interimTranscript}...
-                                    </div>
-                                )}
-                            </div>
+                                </div>
 
-                            {/* Controls */}
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                gap: '16px'
-                            }}>
-                                <button
-                                    onClick={toggleMute}
-                                    style={{
-                                        width: '60px',
-                                        height: '60px',
-                                        borderRadius: '50%',
-                                        border: 'none',
-                                        background: isMuted ? '#ef4444' : 'rgba(51, 65, 85, 0.8)',
-                                        color: 'white',
-                                        fontSize: '1.5rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {isMuted ? '🔇' : '🎤'}
-                                </button>
-                                <button
-                                    onClick={handleEndCall}
-                                    style={{
-                                        width: '60px',
-                                        height: '60px',
-                                        borderRadius: '50%',
-                                        border: 'none',
-                                        background: '#ef4444',
-                                        color: 'white',
-                                        fontSize: '1.5rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    📵
-                                </button>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-2" ref={transcriptRef}>
+                                    {transcript.length === 0 && !speechRecognition.interimTranscript && (
+                                        <div className="text-center py-20 text-white/20 italic">
+                                            Waiting for voice activity...
+                                        </div>
+                                    )}
+                                    {transcript.map((t, i) => (
+                                        <div key={i} className={`flex ${t.speaker === 'agent' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[80%] rounded-2xl p-4 ${t.speaker === 'agent'
+                                                ? 'bg-[#20e078]/10 border border-[#20e078]/20 text-white'
+                                                : 'bg-white/5 border border-white/10 text-white/90'
+                                                }`}>
+                                                <div className={`text-[10px] font-bold uppercase mb-1 tracking-wider ${t.speaker === 'agent' ? 'text-[#20e078] text-right' : 'text-cyan-400'
+                                                    }`}>
+                                                    {t.speaker === 'agent' ? 'YOU' : 'CUSTOMER'}
+                                                </div>
+                                                <p className="leading-relaxed">{t.text}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {speechRecognition.interimTranscript && (
+                                        <div className="flex justify-start opacity-50">
+                                            <div className="max-w-[80%] rounded-2xl p-4 bg-white/5 border border-dashed border-white/10">
+                                                <p className="animate-pulse">{speechRecognition.interimTranscript}...</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Control Bar */}
+                                <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-center gap-6">
+                                    <button
+                                        onClick={toggleMute}
+                                        className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-all ${isMuted
+                                            ? 'bg-red-500/20 text-red-500 border border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                                            : 'bg-white/10 text-white hover:bg-[#20e078] hover:text-black border border-white/10'
+                                            }`}
+                                    >
+                                        {isMuted ? '🔇' : '🎤'}
+                                    </button>
+                                    <button
+                                        onClick={handleEndCall}
+                                        className="px-8 py-3 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all transform hover:scale-105"
+                                    >
+                                        End Interaction
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Call ended */}
+                    {/* Call Ended - Summary */}
                     {status === 'ended' && (
-                        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                            <div style={{
-                                width: '80px',
-                                height: '80px',
-                                borderRadius: '50%',
-                                background: 'rgba(99, 102, 241, 0.1)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '2rem',
-                                margin: '0 auto 24px'
-                            }}>
-                                ✅
+                        <div className="glass-liquid rounded-3xl p-12 max-w-2xl mx-auto w-full text-center">
+                            <div className="w-20 h-20 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-4xl mx-auto mb-6 border border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                                ✓
                             </div>
-                            <h2>Call Completed</h2>
-                            <p style={{ color: '#94a3b8', marginBottom: '24px' }}>
-                                Duration: {formatDuration(callDuration)}
-                            </p>
+                            <h2 className="text-3xl font-bold text-white mb-2">Interaction Complete</h2>
+                            <p className="text-white/40 font-mono mb-8">Duration: {formatDuration(callDuration)}</p>
 
                             {summary && (
-                                <div style={{
-                                    background: 'rgba(30, 41, 59, 0.5)',
-                                    borderRadius: '12px',
-                                    padding: '20px',
-                                    textAlign: 'left',
-                                    marginBottom: '24px',
-                                    maxWidth: '600px',
-                                    margin: '0 auto 24px'
-                                }}>
-                                    <h4 style={{ marginBottom: '12px' }}>📋 Call Summary</h4>
-                                    <p style={{ color: '#94a3b8' }}>{summary.summary}</p>
-                                    <div style={{ marginTop: '12px', display: 'flex', gap: '16px' }}>
-                                        <div>
-                                            <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Intent:</span>
-                                            <span style={{ marginLeft: '4px' }}>{summary.intent}</span>
+                                <div className="text-left bg-black/40 rounded-xl p-6 border border-white/10 mb-8">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="text-[#20e078] text-xl">✨</span>
+                                        <h3 className="font-bold text-white">AI Session Summary</h3>
+                                    </div>
+                                    <p className="text-white/80 leading-relaxed mb-6">{summary.summary}</p>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                            <div className="text-[10px] uppercase text-white/40 font-bold mb-1">Customer Intent</div>
+                                            <div className="text-white font-medium">{summary.intent}</div>
                                         </div>
-                                        <div>
-                                            <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Sentiment:</span>
-                                            <span style={{ marginLeft: '4px' }}>{summary.sentiment}</span>
+                                        <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                            <div className="text-[10px] uppercase text-white/40 font-bold mb-1">Sentiment</div>
+                                            <div className="text-white font-medium">{summary.sentiment}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -582,106 +497,103 @@ function AgentWebRTCCall() {
                                     setCallDuration(0);
                                     setSummary(null);
                                 }}
-                                style={{
-                                    padding: '12px 32px',
-                                    background: 'rgba(99, 102, 241, 0.2)',
-                                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                                    borderRadius: '8px',
-                                    color: '#818cf8',
-                                    cursor: 'pointer'
-                                }}
+                                className="btn-liquid px-8 py-3 w-full"
                             >
-                                Return to Queue
+                                Return to Call Queue
                             </button>
                         </div>
                     )}
                 </div>
 
-                {/* Customer context sidebar (when connected) */}
-                {status === 'connected' && (customer || aiInsights) && (
-                    <div style={{
-                        background: 'rgba(30, 41, 59, 0.5)',
-                        borderRadius: '12px',
-                        padding: '20px',
-                        height: 'fit-content'
-                    }}>
-                        {customer && (
-                            <div style={{ marginBottom: '24px' }}>
-                                <h4 style={{ marginBottom: '16px' }}>👤 Customer Info</h4>
-                                <div style={{ marginBottom: '12px' }}>
-                                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Name</div>
-                                    <div>{customer.name || 'Unknown'}</div>
+                {/* Sidebar - Context & AI (Connected only) */}
+                {status === 'connected' && (
+                    <div className="flex flex-col gap-6">
+                        {/* Customer Card */}
+                        <div className="glass-defi rounded-2xl p-6 border border-white/5">
+                            <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">Customer Profile</h4>
+                            {customer ? (
+                                <div>
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                            {customer.name?.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-white text-lg">{customer.name}</div>
+                                            <div className="text-sm text-white/50">{customer.company || 'Individual Client'}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {customer.potentialLevel && (
+                                            <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                                                <span className="text-sm text-white/60">Lead Potential</span>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${customer.potentialLevel === 'high' ? 'bg-[#20e078]/20 text-[#20e078]' :
+                                                    customer.potentialLevel === 'medium' ? 'bg-amber-500/20 text-amber-500' : 'bg-white/10 text-white/40'
+                                                    }`}>
+                                                    {customer.potentialLevel}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                                            <span className="text-sm text-white/60">Phone</span>
+                                            <span className="text-sm text-white font-mono">{customer.phone || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                                            <span className="text-sm text-white/60">Email</span>
+                                            <span className="text-sm text-white truncate max-w-[150px]" title={customer.email}>{customer.email}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                {customer.company && (
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Company</div>
-                                        <div>{customer.company}</div>
-                                    </div>
-                                )}
-                                {customer.potentialLevel && (
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Potential</div>
-                                        <div style={{
-                                            display: 'inline-block',
-                                            padding: '2px 8px',
-                                            background: customer.potentialLevel === 'high' ? 'rgba(16, 185, 129, 0.2)' :
-                                                customer.potentialLevel === 'medium' ? 'rgba(234, 179, 8, 0.2)' :
-                                                    'rgba(239, 68, 68, 0.2)',
-                                            borderRadius: '4px',
-                                            fontSize: '0.875rem'
-                                        }}>{customer.potentialLevel}</div>
-                                    </div>
-                                )}
+                            ) : (
+                                <div className="text-white/40 italic text-center py-4">Unknown Caller ID</div>
+                            )}
+                        </div>
+
+                        {/* AI Insights Card */}
+                        <div className="glass-defi flex-1 rounded-2xl p-6 border border-white/5 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <div className="text-6xl">✨</div>
                             </div>
-                        )}
+                            <h4 className="text-xs font-bold text-[#20e078] uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <span className="animate-pulse">⚡</span> Real-time Intelligence
+                            </h4>
 
-                        {aiInsights && (
-                            <div>
-                                <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    ✨ Live Intelligence
-                                </h4>
-
-                                <div style={{ marginBottom: '12px' }}>
-                                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Detected Intent</div>
-                                    <div style={{ fontWeight: 500 }}>{aiInsights.intent || 'Analyzing...'}</div>
-                                </div>
-
-                                <div style={{ marginBottom: '12px' }}>
-                                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Sentiment</div>
-                                    <div style={{
-                                        color: aiInsights.sentiment?.toLowerCase().includes('positive') ? '#10b981' :
-                                            aiInsights.sentiment?.toLowerCase().includes('negative') ? '#ef4444' : '#94a3b8'
-                                    }}>
-                                        {aiInsights.sentiment || 'Neutral'}
-                                    </div>
-                                </div>
-
-                                {aiInsights.keyPoints && aiInsights.keyPoints.length > 0 && (
+                            {aiInsights ? (
+                                <div className="space-y-6">
                                     <div>
-                                        <div style={{ color: '#64748b', fontSize: '0.75rem', marginBottom: '4px' }}>Key Points</div>
-                                        <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.875rem' }}>
-                                            {aiInsights.keyPoints.map((point, i) => (
-                                                <li key={i} style={{ marginBottom: '4px' }}>{point}</li>
-                                            ))}
-                                        </ul>
+                                        <div className="text-xs text-white/40 mb-1">Detected Intent</div>
+                                        <div className="text-lg font-bold text-white">{aiInsights.intent}</div>
                                     </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
 
-                {/* Error display */}
-                {webrtcError && (
-                    <div style={{
-                        gridColumn: '1 / -1',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        borderRadius: '8px',
-                        padding: '12px 16px',
-                        color: '#f87171'
-                    }}>
-                        ❌ {webrtcError}
+                                    <div>
+                                        <div className="text-xs text-white/40 mb-1">Current Sentiment</div>
+                                        <div className={`text-3xl font-bold ${aiInsights.sentiment?.toLowerCase().includes('positive') ? 'text-[#20e078]' :
+                                            aiInsights.sentiment?.toLowerCase().includes('negative') ? 'text-red-400' : 'text-gray-400'
+                                            }`}>
+                                            {aiInsights.sentiment}
+                                        </div>
+                                    </div>
+
+                                    {aiInsights.keyPoints?.length > 0 && (
+                                        <div>
+                                            <div className="text-xs text-white/40 mb-2">Key Topics</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {aiInsights.keyPoints.map((pt, i) => (
+                                                    <span key={i} className="px-2 py-1 rounded-md bg-white/10 text-xs text-white/80 border border-white/5">
+                                                        {pt}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-48 text-center text-white/20">
+                                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-white/20 animate-spin-slow mb-4" />
+                                    <p className="text-xs uppercase tracking-widest">Analyzing Speech Patterns...</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </main>

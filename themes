@@ -1,0 +1,45 @@
+Based on the image you uploaded, this design aesthetic is a blend of "Dark Mode Cyber-Corporate" and "Glassmorphism." It is highly popular in fintech, cybersecurity, and SaaS (Software as a Service) presentations because it feels secure, modern, and high-tech.
+
+Here is a set of prompts you can use in AI image generators (like Midjourney, DALL-E 3, or Adobe Firefly) or as a design brief for a creative team to replicate this exact theme.
+
+🎨 The Master Theme Prompt
+Use this prompt to establish the overall look and feel of the project:
+
+"A premium dark-mode presentation design system featuring a deep charcoal and obsidian black background. The visual focal points are fluid, glowing 'Northern Lights' gradients in neon mint, emerald green, and forest green. The UI style is minimalist with glassmorphism effects (frosted glass transparency) on cards and text boxes. Typography is clean, bold, geometric sans-serif. The aesthetic is high-tech, secure, and cinematic. 4k resolution, smooth vector lines."
+
+🧩 Detailed Breakdown for Specific Assets
+If you are generating specific parts of the project, use these targeted prompts:
+
+1. For Backgrounds (Slides 2 & 3 style):
+
+"Abstract corporate tech background, deep black canvas with a soft, diagonal sweep of emerald green and neon mint light. Smooth, smoky gradient, out-of-focus bokeh effect, professional and clean."
+
+2. For the 3D Graphics (Slide 7 "Vulnerabilities" style):
+
+"A 3D low-poly wireframe illustration of a hooded cyber figure or network node, glowing neon green lines against a black background. Holographic data visualization style, cybersecurity concept."
+
+3. For Layouts & UI Elements (Slide 5 "Price Plan" style):
+
+"UI design for a pricing table, dark mode. Three vertical cards with a frosted glass effect (glassmorphism), thin white borders, and glowing green call-to-action buttons. Floating on a dark background with subtle green ambient light."
+
+🛠️ Design Specs (The "DNA" of this theme)
+To keep the project consistent manually, stick to these rules:
+
+Color Palette:
+
+Background: #121212 (Almost Black) or #0a0f0d (Dark Green-Black)
+
+Primary Accent: #20e078 (Neon Mint/Spring Green)
+
+Secondary Gradient: #0f5940 to #000000 (Emerald to Black)
+
+Typography:
+
+Use fonts like Poppins, Montserrat, or Inter.
+
+Headlines should be Bold; body text should be Light or Regular.
+
+Key Visual Element:
+
+"The Glow": Notice how the green never looks "flat." It always looks like a light source glowing from behind a dark surface.
+

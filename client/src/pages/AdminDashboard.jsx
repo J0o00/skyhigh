@@ -4,10 +4,62 @@
  * Admin panel for managing users, agents, and viewing analytics.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import '../styles/BackButton.css';
+
+const TiltCard = ({ children, className }) => {
+    const ref = useRef(null);
+
+    const handleMouseMove = (e) => {
+        if (!ref.current) return;
+
+        const rect = ref.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        const rotateX = ((y - centerY) / centerY) * -10;
+        const rotateY = ((x - centerX) / centerX) * 10;
+
+        const shimmerOpacity = 0.15 + (Math.abs(rotateX) + Math.abs(rotateY)) / 80;
+
+        ref.current.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+
+        const shimmer = ref.current.querySelector('.shimmer-card');
+        if (shimmer) {
+            shimmer.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,${shimmerOpacity}) 0%, transparent 60%)`;
+            shimmer.style.opacity = 1;
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (!ref.current) return;
+        ref.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        const shimmer = ref.current.querySelector('.shimmer-card');
+        if (shimmer) {
+            shimmer.style.opacity = 0;
+        }
+    };
+
+    return (
+        <div
+            ref={ref}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className={`relative overflow-hidden transition-all duration-200 ease-out transform-gpu ${className}`}
+            style={{ transformStyle: 'preserve-3d' }}
+        >
+            <div className="shimmer-card absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-0 z-10" />
+            <div className="relative z-20">
+                {children}
+            </div>
+        </div>
+    );
+};
 
 function AdminDashboard() {
     const { user, logout, register } = useAuth();
@@ -77,40 +129,22 @@ function AdminDashboard() {
             users.filter(u => u.role === 'client');
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            background: '#0f172a'
-        }}>
+        <div className="relative min-h-screen font-sf-display-light">
             {/* Header */}
-            <nav style={{
-                background: 'rgba(15, 23, 42, 0.95)',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                padding: '16px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-            }}>
-                <div style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                }}>
-                    ⚙️ Admin Portal
+            <nav className="glass-defi border-b border-white/5 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <svg style={{ width: '24px', height: '24px', color: '#f8fafc' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', margin: 0, letterSpacing: '0.1em' }}>
+                        Admin Portal
+                    </h1>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <span style={{ color: '#94a3b8' }}>{user?.name}</span>
+                <div className="flex items-center gap-4">
+                    <span className="text-white/60 text-sm">{user?.name}</span>
                     <button
                         onClick={() => { logout(); navigate('/'); }}
-                        style={{
-                            background: 'transparent',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            color: '#94a3b8',
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            cursor: 'pointer'
-                        }}
+                        className="px-4 py-2 rounded-lg text-sm text-white/60 border border-white/10 hover:bg-white/5 hover:text-white transition-all"
                     >
                         Logout
                     </button>
@@ -118,140 +152,108 @@ function AdminDashboard() {
             </nav>
 
             {/* Main Content */}
-            <main style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+            <main className="max-w-7xl mx-auto px-6 py-12">
                 {/* Stats */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '16px',
-                    marginBottom: '32px'
-                }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                     {[
-                        { label: 'Total Clients', value: stats.totalClients, color: '#06b6d4' },
-                        { label: 'Total Agents', value: stats.totalAgents, color: '#8b5cf6' },
-                        { label: 'Online Agents', value: stats.onlineAgents, color: '#10b981' },
-                        { label: 'Admins', value: stats.totalAdmins, color: '#f59e0b' }
+                        { label: 'Total Clients', value: stats.totalClients, color: 'text-cyan-400', from: 'from-cyan-500/20', to: 'to-cyan-500/5' },
+                        { label: 'Total Agents', value: stats.totalAgents, color: 'text-[#20e078]', from: 'from-[#20e078]/20', to: 'to-[#20e078]/5' },
+                        { label: 'Online Agents', value: stats.onlineAgents, color: 'text-emerald-400', from: 'from-emerald-500/20', to: 'to-emerald-500/5' },
+                        { label: 'Admins', value: stats.totalAdmins, color: 'text-amber-400', from: 'from-amber-500/20', to: 'to-amber-500/5' }
                     ].map(stat => (
-                        <div
+                        <TiltCard
                             key={stat.label}
-                            style={{
-                                background: 'rgba(30, 41, 59, 0.7)',
-                                borderRadius: '12px',
-                                padding: '20px',
-                                border: '1px solid rgba(255,255,255,0.1)'
-                            }}
+                            className={`glass-liquid p-6 rounded-2xl border border-white/5 bg-gradient-to-br ${stat.from} ${stat.to}`}
                         >
-                            <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '8px' }}>
+                            <div className="text-white/60 text-sm mb-2 uppercase tracking-wide">
                                 {stat.label}
                             </div>
-                            <div style={{ color: stat.color, fontSize: '2rem', fontWeight: 700 }}>
+                            <div className={`text-4xl font-bold ${stat.color} drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]`}>
                                 {stat.value}
                             </div>
-                        </div>
+                        </TiltCard>
                     ))}
                 </div>
 
                 {/* Tabs & Content */}
-                <div style={{
-                    background: 'rgba(30, 41, 59, 0.7)',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    overflow: 'hidden'
-                }}>
+                <div className="glass-defi rounded-2xl border border-white/5 overflow-hidden flex flex-col min-h-[500px]">
                     {/* Tab Header */}
-                    <div style={{
-                        display: 'flex',
-                        borderBottom: '1px solid rgba(255,255,255,0.1)',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '0 16px'
-                    }}>
-                        <div style={{ display: 'flex' }}>
+                    <div className="flex border-b border-white/5 justify-between items-center px-6 bg-white/[0.02]">
+                        <div className="flex gap-2">
                             {tabs.map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    style={{
-                                        padding: '16px 24px',
-                                        background: 'transparent',
-                                        border: 'none',
-                                        borderBottom: activeTab === tab.id ? '2px solid #f59e0b' : '2px solid transparent',
-                                        color: activeTab === tab.id ? '#f8fafc' : '#94a3b8',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9375rem',
-                                        fontWeight: activeTab === tab.id ? 600 : 400
-                                    }}
+                                    className={`px-6 py-4 text-sm font-medium transition-all relative ${activeTab === tab.id
+                                        ? 'text-[#20e078]'
+                                        : 'text-white/40 hover:text-white/70'
+                                        }`}
                                 >
-                                    {tab.icon} {tab.label}
+                                    <span className="flex items-center gap-2">
+                                        {tab.icon} {tab.label}
+                                    </span>
+                                    {activeTab === tab.id && (
+                                        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#20e078] shadow-[0_0_10px_#20e078]" />
+                                    )}
                                 </button>
                             ))}
                         </div>
                         <button
                             onClick={() => setShowCreateModal(true)}
+                            className="hover-pop glass-liquid px-5 py-2 text-sm flex items-center gap-2 font-medium transition-all"
                             style={{
-                                padding: '8px 16px',
-                                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                                border: 'none',
-                                borderRadius: '8px',
+                                borderRadius: '24px',
                                 color: 'white',
-                                cursor: 'pointer',
-                                fontWeight: 600
+                                letterSpacing: '0.03em'
                             }}
                         >
-                            + Create User
+                            <span>+</span> Create User
                         </button>
                     </div>
 
                     {/* User List */}
-                    <div style={{ padding: '16px' }}>
+                    <div className="p-6 overflow-x-auto">
                         {loading ? (
-                            <div style={{ color: '#64748b', textAlign: 'center', padding: '48px' }}>
-                                Loading...
+                            <div className="text-center py-12 text-white/40 animate-pulse">
+                                Loading data...
                             </div>
                         ) : filteredUsers.length === 0 ? (
-                            <div style={{ color: '#64748b', textAlign: 'center', padding: '48px' }}>
+                            <div className="text-center py-12 text-white/40">
                                 No users found
                             </div>
                         ) : (
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr>
-                                        <th style={{ textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>Name</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>Email</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>Role</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>Status</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>Joined</th>
+                                    <tr className="border-b border-white/10">
+                                        {['Name', 'Email', 'Role', 'Status', 'Joined'].map(h => (
+                                            <th key={h} className="p-4 text-xs font-bold text-white/40 uppercase tracking-wider">
+                                                {h}
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {filteredUsers.map(u => (
-                                        <tr key={u._id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <td style={{ padding: '12px', color: '#f8fafc' }}>{u.name}</td>
-                                            <td style={{ padding: '12px', color: '#94a3b8' }}>{u.email}</td>
-                                            <td style={{ padding: '12px' }}>
-                                                <span style={{
-                                                    padding: '4px 8px',
-                                                    borderRadius: '4px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: 600,
-                                                    background: u.role === 'admin' ? 'rgba(245, 158, 11, 0.15)' :
-                                                        u.role === 'agent' ? 'rgba(139, 92, 246, 0.15)' :
-                                                            'rgba(6, 182, 212, 0.15)',
-                                                    color: u.role === 'admin' ? '#f59e0b' :
-                                                        u.role === 'agent' ? '#8b5cf6' : '#06b6d4'
-                                                }}>
+                                <tbody className="divide-y divide-white/5">
+                                    {filteredUsers.map((u, i) => (
+                                        <tr key={u._id} className="hover:bg-white/[0.02] transition-colors group">
+                                            <td className="p-4 text-white font-medium group-hover:text-[#20e078] transition-colors">{u.name}</td>
+                                            <td className="p-4 text-white/60">{u.email}</td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wide ${u.role === 'admin' ? 'bg-amber-500/20 text-amber-500' :
+                                                    u.role === 'agent' ? 'bg-purple-500/20 text-purple-400' :
+                                                        'bg-cyan-500/20 text-cyan-400'
+                                                    }`}>
                                                     {u.role}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '12px' }}>
-                                                <span style={{
-                                                    color: u.isOnline ? '#10b981' : '#64748b',
-                                                    fontSize: '0.875rem'
-                                                }}>
-                                                    {u.isOnline ? '● Online' : '○ Offline'}
+                                            <td className="p-4">
+                                                <span className={`flex items-center gap-2 text-xs font-bold ${u.isOnline ? 'text-emerald-400' : 'text-white/30'
+                                                    }`}>
+                                                    <span className={`w-2 h-2 rounded-full ${u.isOnline ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-white/20'
+                                                        }`} />
+                                                    {u.isOnline ? 'ONLINE' : 'OFFLINE'}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '12px', color: '#64748b', fontSize: '0.875rem' }}>
+                                            <td className="p-4 text-white/40 text-sm font-mono">
                                                 {new Date(u.createdAt).toLocaleDateString()}
                                             </td>
                                         </tr>
@@ -265,58 +267,34 @@ function AdminDashboard() {
 
             {/* Create User Modal */}
             {showCreateModal && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(0,0,0,0.7)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}>
-                    <div style={{
-                        background: '#1e293b',
-                        borderRadius: '16px',
-                        padding: '32px',
-                        width: '400px',
-                        border: '1px solid rgba(255,255,255,0.1)'
-                    }}>
-                        <h2 style={{ color: '#f8fafc', marginBottom: '24px' }}>Create New User</h2>
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="glass-liquid w-full max-w-md p-8 rounded-2xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                        <h2 className="text-2xl font-bold text-white mb-6">Create New User</h2>
 
-                        <form onSubmit={createUser}>
-                            <div className="form-group">
-                                <label className="form-label">Name</label>
+                        <form onSubmit={createUser} className="space-y-6">
+                            <div>
+                                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wide">Name</label>
                                 <input
                                     type="text"
-                                    className="form-input"
+                                    className="input-liquid w-full"
                                     value={newUser.name}
                                     onChange={e => setNewUser(p => ({ ...p, name: e.target.value }))}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Email</label>
+                            <div>
+                                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wide">Email</label>
                                 <input
                                     type="email"
-                                    className="form-input"
+                                    className="input-liquid w-full"
                                     value={newUser.email}
                                     onChange={e => setNewUser(p => ({ ...p, email: e.target.value }))}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Phone (Optional)</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    value={newUser.phone || ''}
-                                    placeholder="+1234567890"
-                                    onChange={e => setNewUser(p => ({ ...p, phone: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Password</label>
+                            <div>
+                                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wide">Password</label>
                                 <input
                                     type="password"
-                                    className="form-input"
+                                    className="input-liquid w-full"
                                     value={newUser.password}
                                     onChange={e => setNewUser(p => ({ ...p, password: e.target.value }))}
                                 />
@@ -324,62 +302,38 @@ function AdminDashboard() {
                                     Min 4 characters
                                 </small>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Role</label>
+                            <div>
+                                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wide">Role</label>
                                 <select
-                                    className="form-input"
+                                    className="input-liquid w-full appearance-none"
                                     value={newUser.role}
                                     onChange={e => setNewUser(p => ({ ...p, role: e.target.value }))}
                                 >
-                                    <option value="client">Client</option>
-                                    <option value="agent">Agent</option>
-                                    <option value="admin">Admin</option>
+                                    <option value="client" className="bg-slate-900">Client</option>
+                                    <option value="agent" className="bg-slate-900">Agent</option>
+                                    <option value="admin" className="bg-slate-900">Admin</option>
                                 </select>
                             </div>
 
                             {error && (
-                                <div style={{
-                                    background: 'rgba(239, 68, 68, 0.15)',
-                                    color: '#ef4444',
-                                    padding: '12px',
-                                    borderRadius: '8px',
-                                    marginBottom: '16px',
-                                    fontSize: '0.875rem'
-                                }}>
+                                <div className="p-3 rounded bg-red-500/20 text-red-400 text-sm border border-red-500/20">
                                     {error}
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', gap: '12px' }}>
+                            <div className="flex gap-4 pt-2">
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(false)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        background: 'transparent',
-                                        border: '1px solid rgba(255,255,255,0.2)',
-                                        borderRadius: '8px',
-                                        color: '#94a3b8',
-                                        cursor: 'pointer'
-                                    }}
+                                    className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 hover:bg-white/5 hover:text-white transition-all"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        color: 'white',
-                                        cursor: 'pointer',
-                                        fontWeight: 600
-                                    }}
+                                    className="flex-1 btn-liquid py-3"
                                 >
-                                    Create
+                                    Create User
                                 </button>
                             </div>
                         </form>

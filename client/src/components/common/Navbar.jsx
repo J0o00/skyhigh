@@ -15,7 +15,7 @@ function Navbar() {
             <div className="container navbar-content">
                 {/* Brand */}
                 <div className="navbar-brand">
-                    <span className="font-display">ConversaIQ</span>
+                    <span className="font-display title-plain text-xl">Echo</span>
                 </div>
 
                 {/* Status & User */}

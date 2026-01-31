@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,15 +17,63 @@ const AuthWidget = ({
     onToggleMode,
     canSignup = true
 }) => {
+    const cardRef = useRef(null);
+
+    const handleMouseMove = (e) => {
+        if (!cardRef.current || isExpanded) return;
+
+        const rect = cardRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        // Calculate rotation (max 15 degrees)
+        const rotateX = ((y - centerY) / centerY) * -15;
+        const rotateY = ((x - centerX) / centerX) * 15;
+
+        // Calculate shimmer intensity based on angle
+        const shimmerOpacity = 0.15 + (Math.abs(rotateX) + Math.abs(rotateY)) / 80;
+
+        cardRef.current.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+        cardRef.current.style.transition = 'transform 0.1s ease-out';
+
+        // Update shimmer layer
+        const shimmer = cardRef.current.querySelector('.shimmer-overlay');
+        if (shimmer) {
+            shimmer.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,${shimmerOpacity}) 0%, transparent 60%)`;
+            shimmer.style.opacity = 1;
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (!cardRef.current) return;
+
+        cardRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        cardRef.current.style.transition = 'transform 0.5s ease-out';
+
+        const shimmer = cardRef.current.querySelector('.shimmer-overlay');
+        if (shimmer) {
+            shimmer.style.opacity = 0;
+        }
+    };
+
     return (
         <div
-            className={`glass-liquid rounded-[24px] p-8 flex flex-col w-full max-w-[320px] transition-all duration-700 cursor-pointer
-                ${isExpanded ? 'scale-105 shadow-[0_30px_80px_rgba(0,0,0,0.8)]' : 'hover:transform hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(0,0,0,0.6)]'}
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className={`glass-liquid rounded-[24px] p-8 flex flex-col w-full max-w-[320px] transition-all duration-700 cursor-pointer relative overflow-hidden transform-gpu
+                ${isExpanded ? 'scale-105' : ''}
                 ${isDimmed ? 'opacity-40 scale-95 blur-[2px]' : 'opacity-100'}
             `}
             onClick={onToggle}
+            style={{ transformStyle: 'preserve-3d' }}
         >
-            <div className="text-center mb-6 relative">
+            {/* Shimmer Overlay */}
+            <div className="shimmer-overlay absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-0 z-0" />
+
+            <div className="text-center mb-6 relative z-10 pointer-events-none">
                 <div className={`inline-block p-4 rounded-full bg-white/5 backdrop-blur-md mb-4 transition-colors duration-500 ${isExpanded ? 'bg-white/20' : 'group-hover:bg-white/10'}`}>
                     <div className="w-8 h-8 flex items-center justify-center text-white/90">
                         {role === 'client' && <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>}
@@ -37,7 +85,7 @@ const AuthWidget = ({
                 {!isExpanded && <p className="text-xs text-white/40 mt-2 font-light tracking-widest uppercase">Tap to Access</p>}
             </div>
 
-            <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[450px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className={`transition-all duration-700 ease-in-out overflow-hidden relative z-20 ${isExpanded ? 'max-h-[450px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <form
                     onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); onSubmit(e, role); }}
                     className="space-y-4 flex flex-col pt-2"
@@ -220,8 +268,8 @@ function RoleSelect() {
                 {/* Floating Glass Title */}
                 <div className="mb-24 relative group">
                     <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-1000"></div>
-                    <h1 className="title-glossy text-5xl md:text-7xl font-normal tracking-[0.2em] pb-4 relative z-10">
-                        CONVERSAIQ
+                    <h1 className="title-glossy text-6xl md:text-8xl font-normal pb-4 relative z-10">
+                        Echo
                     </h1>
                 </div>
 
