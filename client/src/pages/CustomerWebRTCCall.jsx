@@ -58,17 +58,34 @@ function CustomerWebRTCCall() {
                 speaker: 'customer'
             }]);
 
-            // Emit to server for real-time AI processing
+            // Emit to server for agent to receive (new event)
             if (socket && sessionId) {
-                socket.emit('webrtc:transcript-chunk', {
+                socket.emit('client_speech', {
                     sessionId,
                     text: entry.text,
-                    speaker: 'customer',
                     timestamp: new Date()
                 });
             }
         }
     });
+
+    // Listen for agent speech
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on('agent_speech', (data) => {
+            // Receive transcripts from agent
+            setAgentTranscript(prev => [...prev, {
+                text: data.text,
+                speaker: 'agent', // Explicitly set speaker as agent for incoming agent speech
+                timestamp: data.timestamp || new Date()
+            }]);
+        });
+
+        return () => {
+            socket.off('agent_speech');
+        };
+    }, [socket]);
 
     // Request a call with an available agent
     const requestCall = async () => {

@@ -72,12 +72,11 @@ function AgentWebRTCCall() {
                 speaker: 'agent'
             }]);
 
-            // Emit to server/peer
+            // Emit to server/peer (new event)
             if (socket && sessionId) {
-                socket.emit('webrtc:transcript-chunk', {
+                socket.emit('agent_speech', {
                     sessionId,
                     text: entry.text,
-                    speaker: 'agent',
                     timestamp: new Date()
                 });
             }
@@ -88,12 +87,12 @@ function AgentWebRTCCall() {
     useEffect(() => {
         if (!socket) return;
 
-        socket.on('webrtc:transcript-chunk', (data) => {
-            // Agents receive all transcripts (client + agent)
+        // Listen for client speech
+        socket.on('client_speech', (data) => {
             setTranscript(prev => [...prev, {
                 text: data.text,
-                speaker: data.speaker,
-                timestamp: data.timestamp
+                speaker: 'customer', // Explicitly set speaker as customer for incoming client speech
+                timestamp: data.timestamp || new Date()
             }]);
         });
 

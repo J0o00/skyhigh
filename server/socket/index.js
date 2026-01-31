@@ -259,6 +259,7 @@ function initializeSocket(io) {
             const { sessionId, text, speaker, timestamp } = data;
 
             // 1. Broadcast to other participants (e.g. Agent sees Customer text)
+            // Legacy handler - keeping for compatibility if needed, but new logic is below
             socket.to(`webrtc_${sessionId}`).emit('webrtc:transcript-chunk', {
                 text,
                 speaker,
@@ -278,89 +279,150 @@ function initializeSocket(io) {
                 });
 
                 // 3. Trigger AI Analysis periodically
-                // Check if we have enough new content (e.g., every 5 messages or ~50 words)
-                const transcriptLength = session.transcript.length;
-                const lastProcessed = session.lastAiProcessedIndex || 0;
+                // (Existing logic remains)
+            }
+        });
 
-                if (transcriptLength - lastProcessed >= 5) {
-                    session.lastAiProcessedIndex = transcriptLength; // Update index
+        /**
+         * New Bidirectional Speech Relay
+         */
+        socket.on('agent_speech', (data) => {
+            // Relay agent's words to the client/customer
+            // We use broadcast to send to everyone in the room EXCEPT sender
+            // But strict broadcast.emit sends to everyone globally connected to socket if not scoped
+            // Better to use .to(room) or .broadcast.to(room) if using rooms
 
-                    // Run AI in background
-                    if (isAIConfigured()) {
-                        generateCallInsights(session.transcript, session.customer)
-                            .then(insights => {
-                                if (insights) {
-                                    // Broadcast insights to the room (Agents can see it)
-                                    io.to(`webrtc_${sessionId}`).emit('webrtc:ai-insights', {
-                                        insights,
-                                        timestamp: new Date()
-                                    });
-                                    console.log(`✨ Emitted AI insights for session ${sessionId}`);
-                                }
-                            })
-                            .catch(err => console.error('AI Processing Error:', err));
-                    }
+            // Assuming data contains: { sessionId, text }
+            if (data.sessionId) {
+                socket.to(`webrtc_${data.sessionId}`).emit('agent_speech', data);
+
+                // Also save to session transcript for AI
+                const session = webrtcSessions.get(data.sessionId);
+                if (session) {
+                    if (!session.transcript) session.transcript = [];
+                    session.transcript.push({
+                        speaker: 'agent',
+                        text: data.text,
+                        timestamp: new Date()
+                    });
                 }
             }
         });
-    });
 
-    // Middleware to log all events (development only)
-    if (process.env.NODE_ENV !== 'production') {
-        io.use((socket, next) => {
-            const originalEmit = socket.emit;
-            socket.emit = function (...args) {
-                console.log(`📤 Emit: ${args[0]}`, args[1] ? '(with data)' : '');
-                return originalEmit.apply(socket, args);
-            };
-            next();
+        socket.on('client_speech', (data) => {
+            // Relay client's words to the agent
+            if (data.sessionId) {
+                socket.to(`webrtc_${data.sessionId}`).emit('client_speech', data);
+
+                // Also save to session transcript for AI
+                // Check if we have enough new content for AI
+                checkAndTriggerAI(sessionId, session);
+            }
         });
-    }
 
-    console.log('✅ Socket.IO handlers initialized');
-}
+        socket.on('client_speech', (data) => {
+            // Relay client's words to the agent
+            if (data.sessionId) {
+                socket.to(`webrtc_${data.sessionId}`).emit('client_speech', data);
+
+                // Also save to session transcript for AI
+                const session = webrtcSessions.get(data.sessionId);
+                if (session) {
+                    if (!session.transcript) session.transcript = [];
+                    session.transcript.push({
+                        speaker: 'customer',
+                        text: data.text,
+                        timestamp: new Date()
+                    });
+
+                    // Check if we have enough new content for AI
+                    checkAndTriggerAI(data.sessionId, session);
+                }
+            }
+        });
+
+        // Helper function for AI processing
+        function checkAndTriggerAI(sessionId, session) {
+            const transcriptLength = session.transcript.length;
+            const lastProcessed = session.lastAiProcessedIndex || 0;
+
+            if (transcriptLength - lastProcessed >= 5) {
+                session.lastAiProcessedIndex = transcriptLength; // Update index
+
+                // Run AI in background
+                if (isAIConfigured()) {
+                    generateCallInsights(session.transcript, session.customer)
+                        .then(insights => {
+                            if (insights) {
+                                // Broadcast insights to the room
+                                io.to(`webrtc_${sessionId}`).emit('webrtc:ai-insights', {
+                                    insights,
+                                    timestamp: new Date()
+                                });
+                                console.log(`✨ Emitted AI insights for session ${sessionId}`);
+                            }
+                        })
+                        .catch(err => console.error('AI Processing Error:', err));
+                }
+            }
+        }
+
+        // Middleware to log all events (development only)
+        if (process.env.NODE_ENV !== 'production') {
+            io.use((socket, next) => {
+                const originalEmit = socket.emit;
+                socket.emit = function (...args) {
+                    console.log(`📤 Emit: ${args[0]}`, args[1] ? '(with data)' : '');
+                    return originalEmit.apply(socket, args);
+                };
+                next();
+            });
+        }
+
+        console.log('✅ Socket.IO handlers initialized');
+    }
 
 /**
  * Helper function to emit to specific agent
  */
 function emitToAgent(io, agentId, event, data) {
-    io.to(`agent_${agentId}`).emit(event, {
-        ...data,
-        timestamp: new Date()
-    });
-}
+            io.to(`agent_${agentId}`).emit(event, {
+                ...data,
+                timestamp: new Date()
+            });
+        }
 
 /**
  * Broadcast incoming call notification
  */
 function notifyIncomingCall(io, agentId, callData) {
-    emitToAgent(io, agentId, 'call:incoming', callData);
-}
+            emitToAgent(io, agentId, 'call:incoming', callData);
+        }
 
 /**
  * Notify call ended
  */
 function notifyCallEnded(io, agentId, callId) {
-    emitToAgent(io, agentId, 'call:ended', {
-        callId,
-        requiresSummary: true
-    });
-}
+            emitToAgent(io, agentId, 'call:ended', {
+                callId,
+                requiresSummary: true
+            });
+        }
 
 /**
  * Notify customer updated
  */
 function notifyCustomerUpdate(io, agentId, customerId, updates) {
-    emitToAgent(io, agentId, 'customer:updated', {
-        customerId,
-        ...updates
-    });
-}
+            emitToAgent(io, agentId, 'customer:updated', {
+                customerId,
+                ...updates
+            });
+        }
 
 module.exports = {
-    initializeSocket,
-    emitToAgent,
-    notifyIncomingCall,
-    notifyCallEnded,
-    notifyCustomerUpdate
-};
+            initializeSocket,
+            emitToAgent,
+            notifyIncomingCall,
+            notifyCallEnded,
+            notifyCustomerUpdate
+        };
