@@ -380,49 +380,50 @@ function initializeSocket(io) {
         }
 
         console.log('✅ Socket.IO handlers initialized');
-    }
+    }); // End io.on('connection')
+} // End initializeSocket
 
 /**
  * Helper function to emit to specific agent
  */
 function emitToAgent(io, agentId, event, data) {
-            io.to(`agent_${agentId}`).emit(event, {
-                ...data,
-                timestamp: new Date()
-            });
-        }
+    io.to(`agent_${agentId}`).emit(event, {
+        ...data,
+        timestamp: new Date()
+    });
+}
 
 /**
  * Broadcast incoming call notification
  */
 function notifyIncomingCall(io, agentId, callData) {
-            emitToAgent(io, agentId, 'call:incoming', callData);
-        }
+    emitToAgent(io, agentId, 'call:incoming', callData);
+}
 
 /**
  * Notify call ended
  */
 function notifyCallEnded(io, agentId, callId) {
-            emitToAgent(io, agentId, 'call:ended', {
-                callId,
-                requiresSummary: true
-            });
-        }
+    emitToAgent(io, agentId, 'call:ended', {
+        callId,
+        requiresSummary: true
+    });
+}
 
 /**
  * Notify customer updated
  */
 function notifyCustomerUpdate(io, agentId, customerId, updates) {
-            emitToAgent(io, agentId, 'customer:updated', {
-                customerId,
-                ...updates
-            });
-        }
+    emitToAgent(io, agentId, 'customer:updated', {
+        customerId,
+        ...updates
+    });
+}
 
 module.exports = {
-            initializeSocket,
-            emitToAgent,
-            notifyIncomingCall,
-            notifyCallEnded,
-            notifyCustomerUpdate
-        };
+    initializeSocket,
+    emitToAgent,
+    notifyIncomingCall,
+    notifyCallEnded,
+    notifyCustomerUpdate
+};
