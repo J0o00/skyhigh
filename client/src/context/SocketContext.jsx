@@ -17,11 +17,11 @@ export function SocketProvider({ children }) {
     const [isConnected, setIsConnected] = useState(false);
     const [incomingCall, setIncomingCall] = useState(null);
     const [callEnded, setCallEnded] = useState(null);
-    const { agent, isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
 
     // Initialize socket connection
     useEffect(() => {
-        if (!isAuthenticated || !agent) {
+        if (!isAuthenticated || !user) {
             return;
         }
 
@@ -36,8 +36,10 @@ export function SocketProvider({ children }) {
             console.log('🔌 Socket connected');
             setIsConnected(true);
 
-            // Join agent room
-            socketInstance.emit('agent:join', { agentId: agent._id });
+            // Join agent room (only for agents)
+            if (user.role === 'agent') {
+                socketInstance.emit('agent:join', { agentId: user._id });
+            }
         });
 
         socketInstance.on('disconnect', () => {
@@ -71,10 +73,12 @@ export function SocketProvider({ children }) {
         setSocket(socketInstance);
 
         return () => {
-            socketInstance.emit('agent:leave', { agentId: agent._id });
+            if (user.role === 'agent') {
+                socketInstance.emit('agent:leave', { agentId: user._id });
+            }
             socketInstance.disconnect();
         };
-    }, [isAuthenticated, agent]);
+    }, [isAuthenticated, user]);
 
     // Clear incoming call
     const clearIncomingCall = useCallback(() => {
