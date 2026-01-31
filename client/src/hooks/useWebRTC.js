@@ -10,11 +10,35 @@ import { io } from 'socket.io-client';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
-// STUN servers for NAT traversal
+// ICE servers for NAT traversal (STUN + TURN)
+// TURN servers are required for cross-network calls when direct P2P fails
 const ICE_SERVERS = {
     iceServers: [
+        // STUN servers (free, for discovering public IP)
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        // TURN servers from Metered.ca (for relaying when P2P fails)
+        {
+            urls: 'turn:global.relay.metered.ca:80',
+            username: '5764b5511687c05753186f01',
+            credential: '5764b5511687c05753186f01'
+        },
+        {
+            urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+            username: '5764b5511687c05753186f01',
+            credential: '5764b5511687c05753186f01'
+        },
+        {
+            urls: 'turn:global.relay.metered.ca:443',
+            username: '5764b5511687c05753186f01',
+            credential: '5764b5511687c05753186f01'
+        },
+        {
+            urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+            username: '5764b5511687c05753186f01',
+            credential: '5764b5511687c05753186f01'
+        }
     ]
 };
 
