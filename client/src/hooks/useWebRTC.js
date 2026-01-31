@@ -17,27 +17,27 @@ const ICE_SERVERS = {
         // STUN servers (free, for discovering public IP)
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'stun:stun.relay.metered.ca:80' },
         // TURN servers from Metered.ca (for relaying when P2P fails)
         {
             urls: 'turn:global.relay.metered.ca:80',
             username: '5764b5511687c05753186f01',
-            credential: '5764b5511687c05753186f01'
+            credential: 'JPWmUrdpSoVm+KDJ'
         },
         {
             urls: 'turn:global.relay.metered.ca:80?transport=tcp',
             username: '5764b5511687c05753186f01',
-            credential: '5764b5511687c05753186f01'
+            credential: 'JPWmUrdpSoVm+KDJ'
         },
         {
             urls: 'turn:global.relay.metered.ca:443',
             username: '5764b5511687c05753186f01',
-            credential: '5764b5511687c05753186f01'
+            credential: 'JPWmUrdpSoVm+KDJ'
         },
         {
             urls: 'turns:global.relay.metered.ca:443?transport=tcp',
             username: '5764b5511687c05753186f01',
-            credential: '5764b5511687c05753186f01'
+            credential: 'JPWmUrdpSoVm+KDJ'
         }
     ]
 };
