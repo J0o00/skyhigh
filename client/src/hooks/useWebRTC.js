@@ -10,37 +10,33 @@ import { io } from 'socket.io-client';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
-// ICE servers for NAT traversal (STUN + TURN)
-// TURN servers are required for cross-network calls when direct P2P fails
-const ICE_SERVERS = {
+// Metered.ca API for TURN credentials
+const METERED_API_URL = 'https://conversalq.metered.live/api/v1/turn/credentials?apiKey=921b4615e23f3504ad799e97a4d7506769a7';
+
+// Fallback ICE servers (STUN only)
+const FALLBACK_ICE_SERVERS = {
     iceServers: [
-        // STUN servers (free, for discovering public IP)
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.relay.metered.ca:80' },
-        // TURN servers from Metered.ca (for relaying when P2P fails)
-        {
-            urls: 'turn:global.relay.metered.ca:80',
-            username: '5764b5511687c05753186f01',
-            credential: 'JPWmUrdpSoVm+KDJ'
-        },
-        {
-            urls: 'turn:global.relay.metered.ca:80?transport=tcp',
-            username: '5764b5511687c05753186f01',
-            credential: 'JPWmUrdpSoVm+KDJ'
-        },
-        {
-            urls: 'turn:global.relay.metered.ca:443',
-            username: '5764b5511687c05753186f01',
-            credential: 'JPWmUrdpSoVm+KDJ'
-        },
-        {
-            urls: 'turns:global.relay.metered.ca:443?transport=tcp',
-            username: '5764b5511687c05753186f01',
-            credential: 'JPWmUrdpSoVm+KDJ'
-        }
+        { urls: 'stun:stun1.l.google.com:19302' }
     ]
 };
+
+// Fetch TURN credentials from Metered.ca API
+async function getIceServers() {
+    try {
+        console.log('📡 Fetching TURN credentials from Metered.ca...');
+        const response = await fetch(METERED_API_URL);
+        if (!response.ok) {
+            throw new Error('Failed to fetch TURN credentials');
+        }
+        const iceServers = await response.json();
+        console.log('✅ Got TURN servers:', iceServers.length, 'servers');
+        return { iceServers };
+    } catch (error) {
+        console.error('❌ Failed to fetch TURN credentials, using fallback:', error);
+        return FALLBACK_ICE_SERVERS;
+    }
+}
 
 export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnectionChange, onRemoteStream }) {
     const [connectionState, setConnectionState] = useState('disconnected');
@@ -61,15 +57,20 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
         }
     }, [initialSessionId]);
 
-    // Initialize peer connection
-    const initPeerConnection = useCallback((currentSessionId) => {
+    // Initialize peer connection (async to fetch TURN credentials)
+    const initPeerConnection = useCallback(async (currentSessionId) => {
         if (peerConnectionRef.current) {
             console.log('📡 Peer connection already exists');
             return peerConnectionRef.current;
         }
 
         console.log('📡 Creating new peer connection');
-        peerConnectionRef.current = new RTCPeerConnection(ICE_SERVERS);
+
+        // Fetch TURN credentials from Metered.ca
+        const iceConfig = await getIceServers();
+        console.log('📡 Using ICE config:', iceConfig);
+
+        peerConnectionRef.current = new RTCPeerConnection(iceConfig);
 
         // Handle ICE candidates
         peerConnectionRef.current.onicecandidate = (event) => {
@@ -289,7 +290,7 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
             setError(null);
             setConnectionState('initializing');
 
-            initPeerConnection(currentSessionId);
+            await initPeerConnection(currentSessionId);
             await getLocalStream();
             initSocket(currentSessionId);
 
@@ -310,7 +311,7 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
             setError(null);
             setConnectionState('connecting');
 
-            initPeerConnection(currentSessionId);
+            await initPeerConnection(currentSessionId);
             await getLocalStream();
             initSocket(currentSessionId);
 
