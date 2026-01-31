@@ -11,22 +11,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext'; // Import SocketContext
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { api } from '../services/api';
-import { io } from 'socket.io-client';
 import '../styles/BackButton.css';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
+// Socket URL logic removed as we use context socket
 
 function AgentWebRTCCall() {
     const { user } = useAuth();
+    const { socket: globalSocket } = useSocket(); // Get global socket
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Get session from navigation state or query params
+    // ... (state declarations remain same)
     const incomingSession = location.state?.session;
-
     const [sessionId, setSessionId] = useState(incomingSession?.sessionId || null);
     const [status, setStatus] = useState(incomingSession ? 'incoming' : 'idle');
     const [callDuration, setCallDuration] = useState(0);
@@ -35,29 +35,23 @@ function AgentWebRTCCall() {
     const [callerName, setCallerName] = useState(incomingSession?.callerName || null);
     const [summary, setSummary] = useState(null);
     const [pendingCalls, setPendingCalls] = useState([]);
-    const [aiInsights, setAiInsights] = useState(null); // Live AI insights
+    const [aiInsights, setAiInsights] = useState(null);
 
     const timerRef = useRef(null);
     const transcriptRef = useRef(null);
-    const listenerSocketRef = useRef(null);
     const speechRecognitionRef = useRef(null);
 
-    // Speech recognition hook - must be called before useWebRTC to avoid hooks order issues
+    // ... (hooks remain same)
     const speechRecognition = useSpeechRecognition({
         onResult: (entry) => {
-            setTranscript(prev => [...prev, {
-                ...entry,
-                speaker: 'agent'
-            }]);
+            setTranscript(prev => [...prev, { ...entry, speaker: 'agent' }]);
         }
     });
 
-    // Store speech recognition in ref for use in callbacks
     useEffect(() => {
         speechRecognitionRef.current = speechRecognition;
     }, [speechRecognition]);
 
-    // WebRTC hook - called unconditionally at top level (Rules of Hooks compliant)
     const {
         connectionState,
         isMuted,
@@ -67,7 +61,7 @@ function AgentWebRTCCall() {
         endCall,
         toggleMute,
         remoteAudioRef,
-        socket // Get WebRTC socket
+        socket: webrtcSocket
     } = useWebRTC({
         sessionId,
         role: 'agent',
@@ -76,123 +70,106 @@ function AgentWebRTCCall() {
             if (state === 'connected') {
                 setStatus('connected');
                 startTimer();
-                // Use ref to safely access speech recognition
                 speechRecognitionRef.current?.startListening();
             }
         }
     });
 
-
-    // Emit transcript chunks when socket and sessionId are available
+    // Emit transcript chunks
     useEffect(() => {
-        if (!socket || !sessionId) return;
-
-        // Subscribe to transcript updates from speech recognition
+        if (!webrtcSocket || !sessionId) return;
         const lastTranscriptLength = { current: 0 };
-
         const checkAndEmitTranscript = () => {
             if (transcript.length > lastTranscriptLength.current) {
                 const newEntries = transcript.slice(lastTranscriptLength.current);
                 newEntries.forEach(entry => {
                     if (entry.speaker === 'agent') {
-                        socket.emit('webrtc:transcript-chunk', {
+                        webrtcSocket.emit('webrtc:transcript-chunk', {
                             sessionId,
                             text: entry.text,
                             speaker: 'agent',
                             timestamp: new Date()
                         });
                     }
-
                 });
                 lastTranscriptLength.current = transcript.length;
             }
         };
-
         checkAndEmitTranscript();
-    }, [socket, sessionId, transcript]);
+    }, [webrtcSocket, sessionId, transcript]);
 
-    // Listen for WebRTC events (transcript & insights)
+    // Listen for WebRTC events
     useEffect(() => {
-        if (!socket) return;
-
-        socket.on('webrtc:transcript-chunk', (data) => {
-            // Agents receive all transcripts (client + agent)
+        if (!webrtcSocket) return;
+        webrtcSocket.on('webrtc:transcript-chunk', (data) => {
             setTranscript(prev => [...prev, {
                 text: data.text,
                 speaker: data.speaker,
                 timestamp: data.timestamp
             }]);
         });
-
-        socket.on('webrtc:ai-insights', (data) => {
+        webrtcSocket.on('webrtc:ai-insights', (data) => {
             console.log('🤖 AI Insights Update:', data.insights);
             setAiInsights(data.insights);
         });
-
         return () => {
-            socket.off('webrtc:transcript-chunk');
-            socket.off('webrtc:ai-insights');
+            webrtcSocket.off('webrtc:transcript-chunk');
+            webrtcSocket.off('webrtc:ai-insights');
         };
-    }, [socket]);
+    }, [webrtcSocket]);
 
-    // Listen for incoming call requests
+    // Listen for incoming call requests using GLOBAL SOCKET
     useEffect(() => {
         if (!user?._id) return;
 
-        console.log('🔌 Agent connecting to socket with user ID:', user._id);
-
-        // Load existing pending calls first
         const loadPendingCalls = async () => {
             try {
-                // Try to get pending calls for this agent
                 const res = await api.get(`/webrtc/sessions/pending/${user._id}`);
                 if (res.data.success && res.data.data.length > 0) {
-                    console.log('📞 Found pending calls:', res.data.data);
                     setPendingCalls(res.data.data);
                 }
             } catch (err) {
-                console.log('No pending calls or error:', err.message);
+                console.log('No pending calls search error:', err.message);
             }
         };
         loadPendingCalls();
 
-        // Also listen for new calls via socket
-        listenerSocketRef.current = io(SOCKET_URL, { transports: ['websocket'] });
+        if (!globalSocket) return;
 
-        listenerSocketRef.current.on('connect', () => {
-            console.log('✅ Socket connected, joining agent room:', user._id);
-            // Join agent room for notifications - use user._id as the agent identifier
-            listenerSocketRef.current.emit('agent:join', { agentId: user._id });
-        });
+        // Verify we are in agent room
+        globalSocket.emit('agent:join', { agentId: user._id });
 
-        // Listen for direct calls
-        listenerSocketRef.current.on('webrtc:call-request', (data) => {
+        const handleCallRequest = (data) => {
             console.log('📞 Incoming call request:', data);
             setPendingCalls(prev => {
                 if (prev.some(c => c.sessionId === data.sessionId)) return prev;
                 return [...prev, data];
             });
-        });
+        };
 
-        // Listen for broadcast calls
-        listenerSocketRef.current.on('webrtc:call-broadcast', (data) => {
+        const handleCallBroadcast = (data) => {
             console.log('📞 Broadcast call request:', data);
             setPendingCalls(prev => {
                 if (prev.some(c => c.sessionId === data.sessionId)) return prev;
                 return [...prev, data];
             });
-        });
+        };
 
-        // Listen for calls taken by other agents
-        listenerSocketRef.current.on('webrtc:call-taken', (data) => {
+        const handleCallTaken = (data) => {
             console.log('✅ Call taken by agent:', data.agentId);
             setPendingCalls(prev => prev.filter(c => c.sessionId !== data.sessionId));
-        });
+        };
+
+        globalSocket.on('webrtc:call-request', handleCallRequest);
+        globalSocket.on('webrtc:call-broadcast', handleCallBroadcast);
+        globalSocket.on('webrtc:call-taken', handleCallTaken);
 
         return () => {
-            listenerSocketRef.current?.disconnect();
+            globalSocket.off('webrtc:call-request', handleCallRequest);
+            globalSocket.off('webrtc:call-broadcast', handleCallBroadcast);
+            globalSocket.off('webrtc:call-taken', handleCallTaken);
         };
-    }, [user?._id]);
+    }, [user?._id, globalSocket]);
 
     // Handle accepting a call
     const handleAcceptCall = async (session) => {
@@ -399,10 +376,15 @@ function AgentWebRTCCall() {
                             <div className="glass-defi flex-1 rounded-3xl p-6 border border-white/5 relative overflow-hidden flex flex-col min-h-[500px]">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#20e078] to-transparent opacity-50" />
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="flex items-center gap-2 text-[#20e078] font-bold uppercase tracking-widest text-xs">
-                                        <span className="w-2 h-2 rounded-full bg-[#20e078] animate-pulse" />
-                                        Live Voice Transcription
-                                    </h3>
+                                    <div className="flex flex-col gap-1">
+                                        <h3 className="flex items-center gap-2 text-[#20e078] font-bold uppercase tracking-widest text-xs">
+                                            <span className="w-2 h-2 rounded-full bg-[#20e078] animate-pulse" />
+                                            Live Voice Transcription
+                                        </h3>
+                                        <p className="text-white/60 text-sm font-medium pl-4">
+                                            On Call with {callerName || customer?.name || 'Customer'}
+                                        </p>
+                                    </div>
                                     <div className="flex gap-2">
                                         <span className="px-2 py-1 rounded bg-white/5 text-[10px] text-white/40 font-mono">EN-US</span>
                                         <span className="px-2 py-1 rounded bg-white/5 text-[10px] text-white/40 font-mono">SECURE</span>
@@ -548,6 +530,7 @@ function AgentWebRTCCall() {
                                 <div className="text-white/40 italic text-center py-4">Unknown Caller ID</div>
                             )}
                         </div>
+
 
                         {/* AI Insights Card */}
                         <div className="glass-defi flex-1 rounded-2xl p-6 border border-white/5 relative overflow-hidden">

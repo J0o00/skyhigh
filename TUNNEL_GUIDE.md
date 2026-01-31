@@ -1,52 +1,30 @@
-# HTTPS Tunneling Guide (Ngrok)
+# Tunneling Guide (External Access)
 
-To test audio/video calls on your phone, you need **HTTPS**. The easiest way is using Ngrok.
+## Option 1: Cloudflare Tunnel (Recommended)
+Cloudflare Tunnel is free, stable, and **does not show browser warnings**.
 
-## 1. Install Ngrok
-1.  Download [Ngrok](https://ngrok.com/download) for Windows.
-2.  Unzip it and verify it works by opening a terminal there and running `ngrok version`.
+1. **Start Backend & Frontend Locally**:
+   - Backend: `npm run dev` (port 5000)
+   - Frontend: `npm run dev` (port 5173)
 
-## 2. Start Tunnels (You need 2 terminals)
+2. **Start the Tunnel**:
+   ```powershell
+   # Run the included script
+   ./simple_cf.ps1
+   ```
 
-Since you have a Frontend (React) and a Backend (Node), you need **two** tunnels.
+3. **Access**:
+   - The script will show a URL (e.g. `https://random-word.trycloudflare.com`).
+   - Open this URL on your phone.
+   - Microphone permissions will work automatically.
 
-### Terminal A (Backend Tunnel)
-Run this command to expose your Backend:
-```powershell
-ngrok http 5000
-```
-*   Copy the URL (e.g., `https://api-123.ngrok-free.app`).
-*   **Keep this running!**
+**Note**: You only need **ONE** tunnel (port 5173). The frontend automatically proxies API requests to the backend (port 5000) thanks to the `vite.config.js` proxy settings.
 
-### Terminal B (Frontend Tunnel)
-Run this command to expose your Frontend:
-```powershell
-ngrok http 5173
-```
-*   Copy the URL (e.g., `https://front-456.ngrok-free.app`).
-*   **Keep this running!**
+## Option 2: Ngrok (Legacy)
+If you prefer Ngrok:
+1. `ngrok http 5173`
+2. **Warning**: Free accounts show a "Browser Warning" page which can break APIs. You must set `ngrok-skip-browser-warning` headers in your requests.
 
-## 3. Update Configuration (Critical)
-Because the URLs changed, you must tell the app where to find itself.
-
-### Update Backend (.env)
-1.  Open `server/.env`.
-2.  Add your **Frontend Tunnel URL** to `CLIENT_URL`.
-    ```env
-    CLIENT_URL=http://localhost:5173,https://front-456.ngrok-free.app
-    ```
-3.  **Restart Backend Server** (`npm run dev`).
-
-### Update Frontend (.env)
-1.  In `client` folder, create/edit `.env`.
-2.  Set the API URL to your **Backend Tunnel URL**:
-    ```env
-    VITE_API_URL=https://api-123.ngrok-free.app/api
-    ```
-    *(Note: Add `/api` at the end)*
-3.  **Restart Frontend Server**.
-
-## 4. Test It
-Open the **Frontend Tunnel URL** (`https://front-456...`) on your phone.
-*   Login.
-*   Microphone should now ask for permission!
+## Troubleshooting
+- **Microphone**: Both options provide HTTPS, so microphone access works.
+- **Connection Refused**: Ensure your local servers (npm run dev) are actually running before starting the tunnel.

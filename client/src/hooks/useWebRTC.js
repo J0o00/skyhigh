@@ -8,7 +8,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (
+    window.location.hostname === 'localhost'
+        ? 'http://localhost:5000'
+        : '/'
+);
 
 // Google STUN servers (reliable for most use cases)
 const ICE_SERVERS = {
@@ -177,7 +181,10 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
         console.log('🔌 Creating new WebRTC socket connection');
         socketRef.current = io(SOCKET_URL, {
             transports: ['websocket'],
-            autoConnect: true
+            autoConnect: true,
+            extraHeaders: {
+                'ngrok-skip-browser-warning': 'true'
+            }
         });
 
         socketRef.current.on('connect', () => {
@@ -267,6 +274,9 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
         // Handle call accepted
         socketRef.current.on('webrtc:call-accepted', () => {
             console.log('✅ Call accepted by agent');
+            // Immediately update connection state to prevent UI stuck on "connecting"
+            setConnectionState('connected');
+            onConnectionChange?.('connected');
         });
 
         // Handle call rejected
@@ -352,27 +362,6 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
         setConnectionState('rejected');
     }, [activeSessionId, userId]);
 
-    // End call - use refs to ensure we have the latest values
-    const endCall = useCallback(() => {
-        socketRef.current?.emit('webrtc:call-end', {
-            sessionId: activeSessionIdRef.current,
-            endedBy: roleRef.current
-        });
-        cleanup();
-        setConnectionState('ended');
-    }, [cleanup]);
-
-    // Toggle mute
-    const toggleMute = useCallback(() => {
-        if (localStreamRef.current) {
-            const audioTrack = localStreamRef.current.getAudioTracks()[0];
-            if (audioTrack) {
-                audioTrack.enabled = !audioTrack.enabled;
-                setIsMuted(!audioTrack.enabled);
-            }
-        }
-    }, []);
-
     // Cleanup resources - use refs to avoid stale closures
     const cleanup = useCallback(() => {
         console.log('Cleaning up WebRTC resources');
@@ -409,6 +398,27 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
 
         pendingCandidatesRef.current = [];
     }, []); // No dependencies - uses refs instead
+
+    // End call - use refs to ensure we have the latest values
+    const endCall = useCallback(() => {
+        socketRef.current?.emit('webrtc:call-end', {
+            sessionId: activeSessionIdRef.current,
+            endedBy: roleRef.current
+        });
+        cleanup();
+        setConnectionState('ended');
+    }, [cleanup]);
+
+    // Toggle Mute
+    const toggleMute = useCallback(() => {
+        if (localStreamRef.current) {
+            const audioTrack = localStreamRef.current.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                setIsMuted(!audioTrack.enabled);
+            }
+        }
+    }, []);
 
     // Cleanup on unmount - use the cleanup function which uses refs
     useEffect(() => {

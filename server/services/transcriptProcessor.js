@@ -85,19 +85,26 @@ async function processTranscript(transcript, session) {
         }
     }
 
+    // ... (previous code)
+
+    // Ensure we have some key points/summary even if AI failed
+    if (aiKeyPoints.length === 0 && keywords.length > 0) {
+        aiKeyPoints = keywords;
+    }
+
     return {
         summary,
         intent: intentResult.intent,
         intentConfidence: intentResult.confidence,
-        keywords, // Contains regex keywords + AI key points
-        keyPoints: aiKeyPoints, // Specific AI key points
+        keywords,
+        keyPoints: aiKeyPoints, // This is the "short points"
         actionItems,
         sentiment: sentiment.label,
         sentimentScore: sentiment.score,
         outcome,
         messageCount: transcript.length,
-        customerMessages: transcript.filter(t => t.speaker === 'customer').length,
-        agentMessages: transcript.filter(t => t.speaker === 'agent').length,
+        // customerMessages: transcript.filter(t => t.speaker === 'customer').length,
+        // agentMessages: transcript.filter(t => t.speaker === 'agent').length,
         duration: session.duration,
         processedAt: new Date()
     };

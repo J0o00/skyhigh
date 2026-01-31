@@ -12,6 +12,7 @@ function Login() {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        password: '',
         role: 'customer'
     });
     const [error, setError] = useState('');
@@ -27,24 +28,32 @@ function Login() {
         setError('');
         setLoading(true);
 
-        let result;
-        if (isSignUp) {
-            if (!formData.name.trim()) {
-                setError('Name is required');
-                setLoading(false);
-                return;
+        try {
+            if (isSignUp) {
+                if (!formData.name.trim()) {
+                    setError('Name is required');
+                    setLoading(false);
+                    return;
+                }
+                if (!formData.password) {
+                    setError('Password is required');
+                    setLoading(false);
+                    return;
+                }
+                await register(formData.name, formData.email, '', formData.password, formData.role);
+            } else {
+                if (!formData.email || !formData.password) {
+                    setError('Email and password are required');
+                    setLoading(false);
+                    return;
+                }
+                await login(formData.email, formData.password, formData.role);
             }
-            result = await register(formData.name, formData.email, '', formData.password || 'password123', formData.role);
-            // Note: Added default password/phone for simplicity if not in form
-        } else {
-            result = await login(formData.email);
+        } catch (err) {
+            setError(err.message || 'Authentication failed');
+        } finally {
+            setLoading(false);
         }
-
-        if (!result.success) {
-            setError(result.error);
-        }
-
-        setLoading(false);
     };
 
     // Quick login buttons for demo
@@ -121,6 +130,19 @@ function Login() {
                             placeholder="Enter your email"
                             value={formData.email}
                             onChange={(e) => handleChange('email', e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    {/* Password */}
+                    <div className="form-group">
+                        <label className="form-label">Password</label>
+                        <input
+                            type="password"
+                            className="form-input"
+                            placeholder="Enter your password"
+                            value={formData.password}
+                            onChange={(e) => handleChange('password', e.target.value)}
                             required
                         />
                     </div>

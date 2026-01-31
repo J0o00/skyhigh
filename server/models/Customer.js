@@ -206,6 +206,29 @@ const customerSchema = new mongoose.Schema({
         lastUpdated: Date
     },
 
+    // Communication History - Unified storage for all interactions
+    communicationHistory: [{
+        type: {
+            type: String,
+            enum: ['call', 'email', 'chat'],
+            required: true
+        },
+        date: {
+            type: Date,
+            required: true
+        },
+        duration: Number, // For calls - in seconds
+        summary: String, // AI-generated summary
+        keyPoints: [String], // Important conversation highlights
+        sentiment: String, // positive, negative, neutral
+        intent: String, // purchase, inquiry, complaint, etc.
+        agentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User' // Reference to agent who handled the interaction
+        },
+        metadata: mongoose.Schema.Types.Mixed // Additional channel-specific data
+    }],
+
     // Notes
     notes: {
         type: String

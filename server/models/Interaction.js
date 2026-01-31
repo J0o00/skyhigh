@@ -51,6 +51,13 @@ const interactionSchema = new mongoose.Schema({
         type: String
     },
 
+    // Full transcript for voice calls
+    transcript: [{
+        speaker: String,
+        text: String,
+        timestamp: Date
+    }],
+
     // Call-specific fields
     callDuration: {
         type: Number // in seconds

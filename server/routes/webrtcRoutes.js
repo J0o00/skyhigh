@@ -176,8 +176,8 @@ router.post('/sessions/:id/transcript', async (req, res) => {
             });
         }
 
-        // Store transcript
-        session.transcript = transcript;
+        // Store transcript - DISABLED as per user requirement to only store short points
+        // session.transcript = transcript; 
         session.status = 'processing';
 
         // Process transcript
@@ -197,6 +197,7 @@ router.post('/sessions/:id/transcript', async (req, res) => {
                 outcome: processedResult.outcome,
                 intent: processedResult.intent,
                 keywords: processedResult.keywords,
+                transcript: transcript, // Persist full transcript
                 notes: `WebRTC Call - ${transcript.length} messages exchanged`
             });
             await interaction.save();
@@ -212,6 +213,23 @@ router.post('/sessions/:id/transcript', async (req, res) => {
                     customer.currentIntent = processedResult.intent;
                     customer.intentConfidence = processedResult.intentConfidence || 70;
                 }
+
+                // Add to communication history - unified storage for all interactions
+                customer.communicationHistory.push({
+                    type: 'call',
+                    date: session.endTime || new Date(),
+                    duration: session.duration,
+                    summary: processedResult.summary,
+                    keyPoints: processedResult.keywords || [], // Important conversation highlights
+                    sentiment: processedResult.sentiment || 'neutral',
+                    intent: processedResult.intent || 'unknown',
+                    agentId: session.agentId,
+                    metadata: {
+                        sessionId: session.sessionId,
+                        transcriptLength: transcript.length,
+                        outcome: processedResult.outcome
+                    }
+                });
 
                 await customer.save();
             }

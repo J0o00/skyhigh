@@ -23,8 +23,8 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/conver
 const users = [
     {
         name: 'Admin User',
-        email: 'admin@conversaiq.com',
-        password: 'admin123',
+        email: 'chrysler@gmail.com',
+        password: '12345678',
         role: 'admin',
         isActive: true
     },
@@ -76,7 +76,7 @@ const agents = [
     },
     {
         name: 'Admin User',
-        email: 'admin@conversaiq.com',
+        email: 'chrysler@gmail.com',
         role: 'admin',
         isActive: true,
         metrics: { totalCalls: 0, totalEmails: 0, totalChats: 0, conversions: 0 }

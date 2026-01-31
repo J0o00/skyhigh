@@ -10,7 +10,11 @@ import { useAuth } from './AuthContext';
 
 const SocketContext = createContext(null);
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (
+    window.location.hostname === 'localhost'
+        ? 'http://localhost:5000'
+        : '/'
+);
 
 export function SocketProvider({ children }) {
     const [socket, setSocket] = useState(null);
@@ -41,7 +45,11 @@ export function SocketProvider({ children }) {
             autoConnect: true,
             reconnection: true,
             reconnectionAttempts: 5,
-            reconnectionDelay: 1000
+            reconnectionDelay: 1000,
+            transports: ['websocket'],
+            extraHeaders: {
+                'ngrok-skip-browser-warning': 'true'
+            }
         });
 
         // Event handlers

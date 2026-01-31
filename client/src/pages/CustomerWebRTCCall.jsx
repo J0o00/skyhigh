@@ -7,7 +7,7 @@
  * - Post-call summary
  */
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useWebRTC } from '../hooks/useWebRTC';
@@ -15,8 +15,12 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { api } from '../services/api';
 import '../styles/BackButton.css';
 
+console.log('Script loaded: CustomerWebRTCCall.jsx');
+
 function CustomerWebRTCCall() {
-    const { user } = useAuth();
+    console.log('Rendering: CustomerWebRTCCall');
+    const auth = useAuth();
+    const user = auth?.user;
     const navigate = useNavigate();
 
     const [sessionId, setSessionId] = useState(null);
@@ -24,6 +28,8 @@ function CustomerWebRTCCall() {
     const [callDuration, setCallDuration] = useState(0);
     const [agentTranscript, setAgentTranscript] = useState([]);
     const [summary, setSummary] = useState(null);
+
+    // Safety check for hooks
     const timerRef = useRef(null);
     const transcriptRef = useRef(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -313,39 +319,25 @@ function CustomerWebRTCCall() {
                             </span>
                         </div>
 
-                        {/* Live transcript */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 px-4 mb-6" ref={transcriptRef}>
-                            <div className="text-center py-4 text-white/20 text-xs uppercase tracking-widest">
-                                --- Conversation Started ---
+                        {/* Call status display (Transcript Hidden for Client) */}
+                        <div className="flex-1 flex flex-col items-center justify-center space-y-8" ref={transcriptRef}>
+                            <div className="relative">
+                                <div className="w-32 h-32 rounded-full border-2 border-[#20e078]/30 flex items-center justify-center animate-pulse-slow">
+                                    <div className="w-24 h-24 rounded-full bg-[#20e078]/10 flex items-center justify-center text-4xl">
+                                        🎤
+                                    </div>
+                                </div>
+                                {/* Sound waves animation */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="w-40 h-40 border border-[#20e078]/10 rounded-full animate-ping" style={{ animationDuration: '2s' }} />
+                                    <div className="w-48 h-48 border border-[#20e078]/5 rounded-full animate-ping" style={{ animationDuration: '2s', animationDelay: '0.4s' }} />
+                                </div>
                             </div>
 
-                            {agentTranscript.length === 0 && !speechRecognition.interimTranscript && (
-                                <div className="text-center py-12 text-white/20 italic">
-                                    Start speaking... your words will appear here.
-                                </div>
-                            )}
-
-                            {agentTranscript.map((t, i) => (
-                                <div key={i} className={`flex ${t.speaker === 'customer' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[80%] rounded-2xl p-4 ${t.speaker === 'customer'
-                                        ? 'bg-[#20e078]/10 border border-[#20e078]/20 text-white'
-                                        : 'bg-white/5 border border-white/10 text-white/90'
-                                        }`}>
-                                        <div className={`text-[10px] font-bold uppercase mb-1 tracking-wider ${t.speaker === 'customer' ? 'text-[#20e078] text-right' : 'text-purple-400'
-                                            }`}>
-                                            {t.speaker === 'customer' ? 'YOU' : 'AGENT'}
-                                        </div>
-                                        <p className="leading-relaxed">{t.text}</p>
-                                    </div>
-                                </div>
-                            ))}
-                            {speechRecognition.interimTranscript && (
-                                <div className="flex justify-end opacity-50">
-                                    <div className="max-w-[80%] rounded-2xl p-4 bg-white/5 border border-dashed border-white/10">
-                                        <p className="animate-pulse">{speechRecognition.interimTranscript}...</p>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="text-center">
+                                <h3 className="text-xl font-bold text-white mb-2 tracking-wide">Secure Call in Progress</h3>
+                                <p className="text-white/40 font-mono text-sm">Voice link established. Recording active.</p>
+                            </div>
                         </div>
 
                         {/* Call controls */}
@@ -367,55 +359,60 @@ function CustomerWebRTCCall() {
                             >
                                 📞
                             </button>
-                        </div>
-                    </div>
-                )}
+                        </div >
+                    </div >
+                )
+                }
 
                 {/* Call ended - Show summary */}
-                {status === 'ended' && (
-                    <div className="glass-liquid rounded-3xl p-12 text-center max-w-lg w-full animate-fade-in">
-                        <div className="w-20 h-20 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-4xl mx-auto mb-6 border border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
-                            ✓
-                        </div>
-                        <h2 className="text-3xl font-bold text-white mb-2">Call Ended</h2>
-                        <p className="text-white/40 font-mono mb-8">Duration: {formatDuration(callDuration)}</p>
-
-                        {summary && (
-                            <div className="text-left bg-black/40 rounded-xl p-6 border border-white/10 mb-8">
-                                <h4 className="text-[#20e078] font-bold mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
-                                    <span>📝</span> Call Summary
-                                </h4>
-                                <p className="text-white/80 leading-relaxed text-sm mb-4">{summary.summary}</p>
-                                {summary.keywords?.length > 0 && (
-                                    <div className="flex flex-wrap gap-2">
-                                        {summary.keywords.map((k, i) => (
-                                            <span key={i} className="px-2 py-1 rounded bg-[#20e078]/10 text-[#20e078] text-xs border border-[#20e078]/20">
-                                                {k}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
+                {
+                    status === 'ended' && (
+                        <div className="glass-liquid rounded-3xl p-12 text-center max-w-lg w-full animate-fade-in">
+                            <div className="w-20 h-20 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-4xl mx-auto mb-6 border border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                                ✓
                             </div>
-                        )}
+                            <h2 className="text-3xl font-bold text-white mb-2">Call Ended</h2>
+                            <p className="text-white/40 font-mono mb-8">Duration: {formatDuration(callDuration)}</p>
 
-                        <button
-                            onClick={() => navigate('/client/dashboard')}
-                            className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-3 rounded-xl transition-all hover:scale-105"
-                        >
-                            Return to Dashboard
-                        </button>
-                    </div>
-                )}
+                            {summary && (
+                                <div className="text-left bg-black/40 rounded-xl p-6 border border-white/10 mb-8">
+                                    <h4 className="text-[#20e078] font-bold mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+                                        <span>📝</span> Call Summary
+                                    </h4>
+                                    <p className="text-white/80 leading-relaxed text-sm mb-4">{summary.summary}</p>
+                                    {summary.keywords?.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {summary.keywords.map((k, i) => (
+                                                <span key={i} className="px-2 py-1 rounded bg-[#20e078]/10 text-[#20e078] text-xs border border-[#20e078]/20">
+                                                    {k}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={() => navigate('/client/dashboard')}
+                                className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-3 rounded-xl transition-all hover:scale-105"
+                            >
+                                Return to Dashboard
+                            </button>
+                        </div>
+                    )
+                }
 
                 {/* Error display */}
-                {webrtcError && (
-                    <div className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3 animate-slide-up">
-                        <span>❌</span>
-                        {webrtcError}
-                    </div>
-                )}
-            </main>
-        </div>
+                {
+                    webrtcError && (
+                        <div className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3 animate-slide-up">
+                            <span>❌</span>
+                            {webrtcError}
+                        </div>
+                    )
+                }
+            </main >
+        </div >
     );
 }
 
