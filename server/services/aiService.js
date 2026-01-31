@@ -61,7 +61,13 @@ async function generateCallInsights(transcript, customerContext = {}) {
         // Extract JSON from response (remove markdown code blocks if present)
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            try {
+                return JSON.parse(jsonMatch[0]);
+            } catch (parseError) {
+                console.error('Error parsing AI response JSON:', parseError.message);
+                console.error('Raw response:', text.substring(0, 500));
+                return null;
+            }
         }
         return null;
 
@@ -109,7 +115,13 @@ async function generateCustomerProfile(emails, calls, notes) {
 
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            try {
+                return JSON.parse(jsonMatch[0]);
+            } catch (parseError) {
+                console.error('Error parsing AI customer profile JSON:', parseError.message);
+                console.error('Raw response:', text.substring(0, 500));
+                return null;
+            }
         }
         return null;
 

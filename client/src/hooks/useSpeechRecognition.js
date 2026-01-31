@@ -25,6 +25,22 @@ export function useSpeechRecognition({
 
     const recognitionRef = useRef(null);
     const transcriptIndexRef = useRef(0);
+    const shouldRestartRef = useRef(false); // Track if we should restart on end
+    const restartAttemptsRef = useRef(0); // Track restart attempts to prevent infinite loops
+    const maxRestartAttempts = 5;
+    
+    // Store callbacks in refs to avoid dependency issues
+    const onResultRef = useRef(onResult);
+    const onErrorRef = useRef(onError);
+    
+    // Update callback refs when they change
+    useEffect(() => {
+        onResultRef.current = onResult;
+    }, [onResult]);
+    
+    useEffect(() => {
+        onErrorRef.current = onError;
+    }, [onError]);
 
     // Initialize speech recognition
     const initRecognition = useCallback(() => {
@@ -39,9 +55,10 @@ export function useSpeechRecognition({
         recognition.lang = language;
 
         recognition.onstart = () => {
-            console.log('🎤 Speech recognition started');
+            console.log('Speech recognition started');
             setIsListening(true);
             setError(null);
+            restartAttemptsRef.current = 0; // Reset restart attempts on successful start
         };
 
         recognition.onresult = (event) => {
@@ -68,7 +85,8 @@ export function useSpeechRecognition({
                 };
 
                 setTranscript(prev => [...prev, newEntry]);
-                onResult?.(newEntry);
+                // Use ref to call callback to avoid dependency issues
+                onResultRef.current?.(newEntry);
             }
         };
 
@@ -79,39 +97,55 @@ export function useSpeechRecognition({
             switch (event.error) {
                 case 'not-allowed':
                     setError('Microphone access denied. Please allow microphone access.');
+                    shouldRestartRef.current = false; // Stop trying to restart
                     break;
                 case 'network':
                     setError('Network error occurred. Speech recognition requires internet.');
                     break;
                 case 'no-speech':
-                    // Not a critical error, just no speech detected
+                    // Not a critical error, just no speech detected - clear any previous error
+                    setError(null);
                     break;
                 case 'aborted':
-                    // User or system stopped recognition
+                    // User or system stopped recognition - clear error
+                    setError(null);
                     break;
                 default:
                     setError(`Speech recognition error: ${event.error}`);
             }
 
-            onError?.(event.error);
+            // Use ref to call callback
+            onErrorRef.current?.(event.error);
         };
 
         recognition.onend = () => {
-            console.log('🎤 Speech recognition ended');
+            console.log('Speech recognition ended');
             setIsListening(false);
 
-            // Auto-restart if still supposed to be listening
-            if (recognitionRef.current && continuous) {
-                try {
-                    recognitionRef.current.start();
-                } catch (e) {
-                    // Already started or stopped
+            // Auto-restart if still supposed to be listening and haven't exceeded attempts
+            if (shouldRestartRef.current && continuous) {
+                if (restartAttemptsRef.current < maxRestartAttempts) {
+                    restartAttemptsRef.current++;
+                    try {
+                        // Small delay before restarting to prevent rapid loops
+                        setTimeout(() => {
+                            if (shouldRestartRef.current && recognitionRef.current) {
+                                recognitionRef.current.start();
+                            }
+                        }, 100);
+                    } catch (e) {
+                        console.error('Error restarting recognition:', e);
+                    }
+                } else {
+                    console.warn('Max restart attempts reached, stopping speech recognition');
+                    setError('Speech recognition stopped after multiple restart attempts');
+                    shouldRestartRef.current = false;
                 }
             }
         };
 
         return recognition;
-    }, [continuous, interimResults, language, onResult, onError]);
+    }, [continuous, interimResults, language]); // Removed callback dependencies
 
     // Start listening
     const startListening = useCallback(() => {
@@ -120,13 +154,21 @@ export function useSpeechRecognition({
             return;
         }
 
+        // Stop any existing recognition
         if (recognitionRef.current) {
             try {
+                shouldRestartRef.current = false; // Prevent auto-restart during cleanup
                 recognitionRef.current.stop();
             } catch (e) {
                 // Already stopped
             }
+            recognitionRef.current = null;
         }
+
+        // Reset state
+        restartAttemptsRef.current = 0;
+        shouldRestartRef.current = true; // Enable auto-restart for continuous mode
+        setError(null);
 
         recognitionRef.current = initRecognition();
         if (recognitionRef.current) {
@@ -134,14 +176,16 @@ export function useSpeechRecognition({
                 recognitionRef.current.start();
             } catch (e) {
                 console.error('Error starting recognition:', e);
+                setError('Failed to start speech recognition');
             }
         }
     }, [initRecognition]);
 
     // Stop listening
     const stopListening = useCallback(() => {
+        shouldRestartRef.current = false; // Prevent auto-restart
+        
         if (recognitionRef.current) {
-            recognitionRef.current.continuous = false; // Prevent auto-restart
             try {
                 recognitionRef.current.stop();
             } catch (e) {
@@ -167,12 +211,14 @@ export function useSpeechRecognition({
     // Cleanup on unmount
     useEffect(() => {
         return () => {
+            shouldRestartRef.current = false; // Prevent auto-restart during cleanup
             if (recognitionRef.current) {
                 try {
                     recognitionRef.current.stop();
                 } catch (e) {
                     // Already stopped
                 }
+                recognitionRef.current = null;
             }
         };
     }, []);

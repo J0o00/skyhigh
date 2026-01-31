@@ -2,10 +2,13 @@
  * Agent Model
  * 
  * Represents agents who use the platform.
- * For MVP, this is simplified without full authentication.
+ * Now includes proper password authentication with bcrypt.
  */
 
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 12;
 
 const agentSchema = new mongoose.Schema({
     // Basic Information
@@ -20,6 +23,12 @@ const agentSchema = new mongoose.Schema({
         unique: true,
         trim: true,
         lowercase: true
+    },
+    
+    // Authentication
+    password: {
+        type: String,
+        required: false // Optional for backwards compatibility
     },
 
     // Role
@@ -62,8 +71,38 @@ const agentSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Hash password before saving using bcrypt
+agentSchema.pre('save', async function (next) {
+    if (!this.isModified('password') || !this.password) return next();
+
+    try {
+        this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Method to check password
+agentSchema.methods.checkPassword = async function (password) {
+    if (!this.password) return false;
+    try {
+        return await bcrypt.compare(password, this.password);
+    } catch (error) {
+        console.error('Password comparison error:', error);
+        return false;
+    }
+};
+
+// Method to get safe agent object (without password)
+agentSchema.methods.toSafeObject = function () {
+    const obj = this.toObject();
+    delete obj.password;
+    return obj;
+};
+
 // Index for quick lookup
-agentSchema.index({ email: 1 });
+// Note: email index is automatically created by unique: true
 agentSchema.index({ isOnline: 1 });
 
 module.exports = mongoose.model('Agent', agentSchema);

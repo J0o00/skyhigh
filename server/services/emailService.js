@@ -13,6 +13,7 @@ let imapClient = null;
 let isPolling = false;
 let ioInstance = null;
 let reconnectAttempts = 0;
+let pollIntervalId = null; // Store interval ID for cleanup
 const MAX_RECONNECT_ATTEMPTS = 5;
 
 /**
@@ -95,14 +96,27 @@ function scheduleReconnect() {
     console.log(`📧 Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
 
     setTimeout(() => {
+        // Stop polling before reconnecting
+        stopPolling();
+        
         if (imapClient) {
             try {
                 imapClient.end();
             } catch (e) { }
         }
-        isPolling = false;
         connectImap();
     }, delay);
+}
+
+/**
+ * Stop polling and clear interval
+ */
+function stopPolling() {
+    if (pollIntervalId) {
+        clearInterval(pollIntervalId);
+        pollIntervalId = null;
+    }
+    isPolling = false;
 }
 
 /**
@@ -110,17 +124,20 @@ function scheduleReconnect() {
  */
 function startPolling(io) {
     if (isPolling) return;
+    
+    // Clear any existing interval first
+    stopPolling();
     isPolling = true;
 
     const poll = async () => {
         try {
             if (!imapClient || imapClient.state !== 'authenticated') {
-                console.log('📧 IMAP not ready, skipping poll');
+                console.log('IMAP not ready, skipping poll');
                 return;
             }
             await checkForNewEmails(io);
         } catch (err) {
-            console.error('📧 Poll error:', err.message);
+            console.error('Poll error:', err.message);
             // If authentication error, trigger reconnect
             if (err.message.includes('Not authenticated') || err.message.includes('Not connected')) {
                 scheduleReconnect();
@@ -131,9 +148,9 @@ function startPolling(io) {
     // Initial check after short delay
     setTimeout(poll, 2000);
 
-    // Set up interval
-    setInterval(poll, config.pollInterval);
-    console.log(`📧 Polling every ${config.pollInterval / 1000} seconds`);
+    // Set up interval and store the ID for cleanup
+    pollIntervalId = setInterval(poll, config.pollInterval);
+    console.log(`Polling every ${config.pollInterval / 1000} seconds`);
 }
 
 /**

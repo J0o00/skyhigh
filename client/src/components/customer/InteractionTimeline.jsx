@@ -72,7 +72,9 @@ function InteractionTimeline({ interactions }) {
                         {/* Agent */}
                         {interaction.agentId && (
                             <div className="text-xs text-muted mt-sm">
-                                by {interaction.agentId.name || 'Agent'}
+                                by {typeof interaction.agentId === 'object' 
+                                    ? (interaction.agentId?.name || 'Agent') 
+                                    : 'Agent'}
                             </div>
                         )}
                     </div>

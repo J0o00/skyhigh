@@ -6,7 +6,9 @@
  */
 
 const mongoose = require('mongoose');
-const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 12; // Industry standard for bcrypt
 
 const userSchema = new mongoose.Schema({
     // Basic Information
@@ -81,19 +83,27 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Hash password before saving
-userSchema.pre('save', function (next) {
+// Hash password before saving using bcrypt
+userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 
-    // Simple hash for MVP (in production, use bcrypt)
-    this.password = crypto.createHash('sha256').update(this.password).digest('hex');
-    next();
+    try {
+        // Use bcrypt for secure password hashing
+        this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
+        next();
+    } catch (error) {
+        next(error);
+    }
 });
 
-// Method to check password
-userSchema.methods.checkPassword = function (password) {
-    const hash = crypto.createHash('sha256').update(password).digest('hex');
-    return this.password === hash;
+// Method to check password using bcrypt
+userSchema.methods.checkPassword = async function (password) {
+    try {
+        return await bcrypt.compare(password, this.password);
+    } catch (error) {
+        console.error('Password comparison error:', error);
+        return false;
+    }
 };
 
 // Method to get safe user object (without password)
@@ -104,7 +114,7 @@ userSchema.methods.toSafeObject = function () {
 };
 
 // Indexes
-userSchema.index({ email: 1 });
+// Note: email index is automatically created by unique: true
 userSchema.index({ role: 1 });
 userSchema.index({ isOnline: 1 });
 

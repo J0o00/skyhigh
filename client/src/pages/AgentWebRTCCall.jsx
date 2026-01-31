@@ -17,7 +17,7 @@ import { api } from '../services/api';
 import { io } from 'socket.io-client';
 import '../styles/BackButton.css';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
 
 function AgentWebRTCCall() {
     const { user } = useAuth();
@@ -40,8 +40,24 @@ function AgentWebRTCCall() {
     const timerRef = useRef(null);
     const transcriptRef = useRef(null);
     const listenerSocketRef = useRef(null);
+    const speechRecognitionRef = useRef(null);
 
-    // WebRTC hook
+    // Speech recognition hook - must be called before useWebRTC to avoid hooks order issues
+    const speechRecognition = useSpeechRecognition({
+        onResult: (entry) => {
+            setTranscript(prev => [...prev, {
+                ...entry,
+                speaker: 'agent'
+            }]);
+        }
+    });
+
+    // Store speech recognition in ref for use in callbacks
+    useEffect(() => {
+        speechRecognitionRef.current = speechRecognition;
+    }, [speechRecognition]);
+
+    // WebRTC hook - called unconditionally at top level (Rules of Hooks compliant)
     const {
         connectionState,
         isMuted,
@@ -60,32 +76,40 @@ function AgentWebRTCCall() {
             if (state === 'connected') {
                 setStatus('connected');
                 startTimer();
-                speechRecognition.startListening();
+                // Use ref to safely access speech recognition
+                speechRecognitionRef.current?.startListening();
             }
         }
     });
 
-    // Speech recognition hook
-    const speechRecognition = useSpeechRecognition({
-        onResult: (entry) => {
-            const transcriptEntry = {
-                text: entry.text,
-                speaker: 'agent',
-                timestamp: new Date()
-            };
 
-            // Add to local transcript
-            setTranscript(prev => [...prev, transcriptEntry]);
+    // Emit transcript chunks when socket and sessionId are available
+    useEffect(() => {
+        if (!socket || !sessionId) return;
 
-            // Emit to server/peer so others can see it
-            if (socket && sessionId) {
-                socket.emit('webrtc:transcript-chunk', {
-                    sessionId,
-                    ...transcriptEntry
+        // Subscribe to transcript updates from speech recognition
+        const lastTranscriptLength = { current: 0 };
+
+        const checkAndEmitTranscript = () => {
+            if (transcript.length > lastTranscriptLength.current) {
+                const newEntries = transcript.slice(lastTranscriptLength.current);
+                newEntries.forEach(entry => {
+                    if (entry.speaker === 'agent') {
+                        socket.emit('webrtc:transcript-chunk', {
+                            sessionId,
+                            text: entry.text,
+                            speaker: 'agent',
+                            timestamp: new Date()
+                        });
+                    }
+
                 });
+                lastTranscriptLength.current = transcript.length;
             }
-        }
-    });
+        };
+
+        checkAndEmitTranscript();
+    }, [socket, sessionId, transcript]);
 
     // Listen for WebRTC events (transcript & insights)
     useEffect(() => {

@@ -104,7 +104,10 @@ function AdminDashboard() {
             setShowCreateModal(false);
             setNewUser({ name: '', email: '', password: '', role: 'agent' });
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to create user');
+            console.error('Create user error:', err);
+            const msg = err.response?.data?.error || err.message || 'Failed to create user';
+            const details = err.response?.data ? JSON.stringify(err.response.data) : '';
+            setError(msg + (details ? ` (${details})` : ''));
         }
     };
 
@@ -295,6 +298,9 @@ function AdminDashboard() {
                                     value={newUser.password}
                                     onChange={e => setNewUser(p => ({ ...p, password: e.target.value }))}
                                 />
+                                <small style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                                    Min 4 characters
+                                </small>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wide">Role</label>
