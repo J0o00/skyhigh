@@ -195,6 +195,17 @@ const customerSchema = new mongoose.Schema({
         default: 'active'
     },
 
+    // AI Intelligence Profile (Unified "Single Folder" View)
+    intelligenceProfile: {
+        profileSummary: String,
+        keyInterests: [String],
+        painPoints: [String],
+        communicationStyle: String,
+        urgencyLevel: String,
+        nextBestAction: String,
+        lastUpdated: Date
+    },
+
     // Notes
     notes: {
         type: String

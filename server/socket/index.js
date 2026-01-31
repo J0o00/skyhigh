@@ -9,6 +9,8 @@
  */
 
 const { Agent } = require('../models');
+const { webrtcSessions } = require('../services/sessionStore');
+const { generateCallInsights, isConfigured: isAIConfigured } = require('../services/aiService');
 
 /**
  * Initialize Socket.IO handlers
@@ -32,7 +34,12 @@ function initializeSocket(io) {
 
             // Join agent-specific room
             socket.join(`agent_${agentId}`);
-            console.log(`👤 Agent ${agentId} joined room agent_${agentId}`);
+            // Also join common agents room for broadcast calls
+            socket.join('agents');
+            console.log(`👤 Agent ${agentId} joined room agent_${agentId} and agents`);
+
+            // Store agentId on socket for later use
+            socket.agentId = agentId;
 
             // Update agent online status
             try {
@@ -179,7 +186,16 @@ function initializeSocket(io) {
         socket.on('webrtc:call-accept', (data) => {
             const { sessionId, agentId } = data;
             console.log(`✅ Agent ${agentId} accepted call ${sessionId}`);
+
+            // Notify participants in the call room
             io.to(`webrtc_${sessionId}`).emit('webrtc:call-accepted', {
+                agentId,
+                timestamp: new Date()
+            });
+
+            // Notify all other agents that the call is taken
+            io.to('agents').emit('webrtc:call-taken', {
+                sessionId,
                 agentId,
                 timestamp: new Date()
             });
@@ -234,6 +250,58 @@ function initializeSocket(io) {
                 });
             }
             console.log(`🔌 Socket disconnected: ${socket.id}`);
+        });
+
+        /**
+         * Real-time Transcript Handling & AI Analysis
+         */
+        socket.on('webrtc:transcript-chunk', async (data) => {
+            const { sessionId, text, speaker, timestamp } = data;
+
+            // 1. Broadcast to other participants (e.g. Agent sees Customer text)
+            socket.to(`webrtc_${sessionId}`).emit('webrtc:transcript-chunk', {
+                text,
+                speaker,
+                timestamp
+            });
+
+            // 2. Buffer for AI processing
+            const session = webrtcSessions.get(sessionId);
+            if (session) {
+                // Initialize transcript array if needed
+                if (!session.transcript) session.transcript = [];
+
+                session.transcript.push({
+                    speaker,
+                    text,
+                    timestamp: new Date(timestamp)
+                });
+
+                // 3. Trigger AI Analysis periodically
+                // Check if we have enough new content (e.g., every 5 messages or ~50 words)
+                const transcriptLength = session.transcript.length;
+                const lastProcessed = session.lastAiProcessedIndex || 0;
+
+                if (transcriptLength - lastProcessed >= 5) {
+                    session.lastAiProcessedIndex = transcriptLength; // Update index
+
+                    // Run AI in background
+                    if (isAIConfigured()) {
+                        generateCallInsights(session.transcript, session.customer)
+                            .then(insights => {
+                                if (insights) {
+                                    // Broadcast insights to the room (Agents can see it)
+                                    io.to(`webrtc_${sessionId}`).emit('webrtc:ai-insights', {
+                                        insights,
+                                        timestamp: new Date()
+                                    });
+                                    console.log(`✨ Emitted AI insights for session ${sessionId}`);
+                                }
+                            })
+                            .catch(err => console.error('AI Processing Error:', err));
+                    }
+                }
+            }
         });
     });
 

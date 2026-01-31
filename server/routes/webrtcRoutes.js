@@ -10,22 +10,15 @@ const { Customer, Interaction, CallSummary } = require('../models');
 const { processTranscript } = require('../services/transcriptProcessor');
 
 // In-memory session store (use Redis in production)
-const webrtcSessions = new Map();
+const { webrtcSessions } = require('../services/sessionStore');
 
 /**
  * POST /api/webrtc/sessions
- * Create a new WebRTC call session
+ * Create a new WebRTC call session - broadcasts to all available agents
  */
 router.post('/sessions', async (req, res) => {
     try {
-        const { customerId, agentId, customerUserId, callerName, callerPhone } = req.body;
-
-        if (!agentId) {
-            return res.status(400).json({
-                success: false,
-                error: 'agentId is required'
-            });
-        }
+        const { customerId, customerUserId, callerName, callerPhone, agentId } = req.body;
 
         const sessionId = `webrtc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -41,7 +34,8 @@ router.post('/sessions', async (req, res) => {
             customerUserId: customerUserId || null,
             callerName: callerName || 'Unknown Caller',
             callerPhone: callerPhone || null,
-            agentId,
+            agentId: null, // Will be set when an agent accepts
+            targetAgentId: agentId || null, // If specific agent requested
             customer,
             status: 'pending', // pending, connected, ended
             startTime: null,
@@ -54,17 +48,28 @@ router.post('/sessions', async (req, res) => {
 
         webrtcSessions.set(sessionId, session);
 
-        // Notify agent of incoming call request with caller name
+        // Notify all available agents of incoming call request
         const io = req.app.get('io');
         if (io) {
-            io.to(`agent_${agentId}`).emit('webrtc:call-request', {
+            const callData = {
                 sessionId,
                 customer,
                 customerUserId,
                 callerName: callerName || 'Unknown Caller',
                 callerPhone,
                 timestamp: new Date()
-            });
+            };
+
+            if (agentId) {
+                // If specific agent requested, only notify that agent
+                io.to(`agent_${agentId}`).emit('webrtc:call-request', callData);
+                console.log(`📞 Call request sent to specific agent: ${agentId}`);
+            } else {
+                // Broadcast to all connected agents (use agents room or iterate)
+                // For now, emit to 'agents' room - agents should join this on connect
+                io.emit('webrtc:call-broadcast', callData);
+                console.log(`📞 Call request broadcast to all agents`);
+            }
         }
 
         res.status(201).json({

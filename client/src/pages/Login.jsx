@@ -16,7 +16,7 @@ function Login() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login, signup } = useAuth();
+    const { login, register } = useAuth();
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -34,7 +34,8 @@ function Login() {
                 setLoading(false);
                 return;
             }
-            result = await signup(formData.name, formData.email, formData.role);
+            result = await register(formData.name, formData.email, '', formData.password || 'password123', formData.role);
+            // Note: Added default password/phone for simplicity if not in form
         } else {
             result = await login(formData.email);
         }

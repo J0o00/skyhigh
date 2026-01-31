@@ -34,6 +34,7 @@ function AgentWebRTCCall() {
     const [callerName, setCallerName] = useState(incomingSession?.callerName || null);
     const [summary, setSummary] = useState(null);
     const [pendingCalls, setPendingCalls] = useState([]);
+    const [aiInsights, setAiInsights] = useState(null); // Live AI insights
 
     const timerRef = useRef(null);
     const transcriptRef = useRef(null);
@@ -48,7 +49,8 @@ function AgentWebRTCCall() {
         rejectCall,
         endCall,
         toggleMute,
-        remoteAudioRef
+        remoteAudioRef,
+        socket // Get WebRTC socket
     } = useWebRTC({
         sessionId,
         role: 'agent',
@@ -69,8 +71,43 @@ function AgentWebRTCCall() {
                 ...entry,
                 speaker: 'agent'
             }]);
+
+            // Emit to server/peer
+            if (socket && sessionId) {
+                socket.emit('webrtc:transcript-chunk', {
+                    sessionId,
+                    text: entry.text,
+                    speaker: 'agent',
+                    timestamp: new Date()
+                });
+            }
         }
     });
+
+    // Listen for WebRTC events (transcript & insights)
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on('webrtc:transcript-chunk', (data) => {
+            if (data.speaker !== 'agent') { // Don't duplicate self
+                setTranscript(prev => [...prev, {
+                    text: data.text,
+                    speaker: data.speaker,
+                    timestamp: data.timestamp
+                }]);
+            }
+        });
+
+        socket.on('webrtc:ai-insights', (data) => {
+            console.log('🤖 AI Insights Update:', data.insights);
+            setAiInsights(data.insights);
+        });
+
+        return () => {
+            socket.off('webrtc:transcript-chunk');
+            socket.off('webrtc:ai-insights');
+        };
+    }, [socket]);
 
     // Listen for incoming call requests
     useEffect(() => {
@@ -102,13 +139,28 @@ function AgentWebRTCCall() {
             listenerSocketRef.current.emit('agent:join', { agentId: user._id });
         });
 
+        // Listen for direct calls
         listenerSocketRef.current.on('webrtc:call-request', (data) => {
             console.log('📞 Incoming call request:', data);
-            // Check if call is already in pending list
             setPendingCalls(prev => {
                 if (prev.some(c => c.sessionId === data.sessionId)) return prev;
                 return [...prev, data];
             });
+        });
+
+        // Listen for broadcast calls
+        listenerSocketRef.current.on('webrtc:call-broadcast', (data) => {
+            console.log('📞 Broadcast call request:', data);
+            setPendingCalls(prev => {
+                if (prev.some(c => c.sessionId === data.sessionId)) return prev;
+                return [...prev, data];
+            });
+        });
+
+        // Listen for calls taken by other agents
+        listenerSocketRef.current.on('webrtc:call-taken', (data) => {
+            console.log('✅ Call taken by agent:', data.agentId);
+            setPendingCalls(prev => prev.filter(c => c.sessionId !== data.sessionId));
         });
 
         return () => {
@@ -523,48 +575,74 @@ function AgentWebRTCCall() {
                 </div>
 
                 {/* Customer context sidebar (when connected) */}
-                {status === 'connected' && customer && (
+                {status === 'connected' && (customer || aiInsights) && (
                     <div style={{
                         background: 'rgba(30, 41, 59, 0.5)',
                         borderRadius: '12px',
                         padding: '20px',
                         height: 'fit-content'
                     }}>
-                        <h4 style={{ marginBottom: '16px' }}>👤 Customer Info</h4>
-                        <div style={{ marginBottom: '12px' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Name</div>
-                            <div>{customer.name || 'Unknown'}</div>
-                        </div>
-                        {customer.company && (
-                            <div style={{ marginBottom: '12px' }}>
-                                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Company</div>
-                                <div>{customer.company}</div>
+                        {customer && (
+                            <div style={{ marginBottom: '24px' }}>
+                                <h4 style={{ marginBottom: '16px' }}>👤 Customer Info</h4>
+                                <div style={{ marginBottom: '12px' }}>
+                                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Name</div>
+                                    <div>{customer.name || 'Unknown'}</div>
+                                </div>
+                                {customer.company && (
+                                    <div style={{ marginBottom: '12px' }}>
+                                        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Company</div>
+                                        <div>{customer.company}</div>
+                                    </div>
+                                )}
+                                {customer.potentialLevel && (
+                                    <div style={{ marginBottom: '12px' }}>
+                                        <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Potential</div>
+                                        <div style={{
+                                            display: 'inline-block',
+                                            padding: '2px 8px',
+                                            background: customer.potentialLevel === 'high' ? 'rgba(16, 185, 129, 0.2)' :
+                                                customer.potentialLevel === 'medium' ? 'rgba(234, 179, 8, 0.2)' :
+                                                    'rgba(239, 68, 68, 0.2)',
+                                            borderRadius: '4px',
+                                            fontSize: '0.875rem'
+                                        }}>{customer.potentialLevel}</div>
+                                    </div>
+                                )}
                             </div>
                         )}
-                        {customer.currentIntent && (
-                            <div style={{ marginBottom: '12px' }}>
-                                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Current Intent</div>
-                                <div style={{
-                                    display: 'inline-block',
-                                    padding: '2px 8px',
-                                    background: 'rgba(99, 102, 241, 0.2)',
-                                    borderRadius: '4px',
-                                    fontSize: '0.875rem'
-                                }}>{customer.currentIntent}</div>
-                            </div>
-                        )}
-                        {customer.potentialLevel && (
-                            <div style={{ marginBottom: '12px' }}>
-                                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Potential</div>
-                                <div style={{
-                                    display: 'inline-block',
-                                    padding: '2px 8px',
-                                    background: customer.potentialLevel === 'high' ? 'rgba(16, 185, 129, 0.2)' :
-                                        customer.potentialLevel === 'medium' ? 'rgba(234, 179, 8, 0.2)' :
-                                            'rgba(239, 68, 68, 0.2)',
-                                    borderRadius: '4px',
-                                    fontSize: '0.875rem'
-                                }}>{customer.potentialLevel}</div>
+
+                        {aiInsights && (
+                            <div>
+                                <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    ✨ Live Intelligence
+                                </h4>
+
+                                <div style={{ marginBottom: '12px' }}>
+                                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Detected Intent</div>
+                                    <div style={{ fontWeight: 500 }}>{aiInsights.intent || 'Analyzing...'}</div>
+                                </div>
+
+                                <div style={{ marginBottom: '12px' }}>
+                                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Sentiment</div>
+                                    <div style={{
+                                        color: aiInsights.sentiment?.toLowerCase().includes('positive') ? '#10b981' :
+                                            aiInsights.sentiment?.toLowerCase().includes('negative') ? '#ef4444' : '#94a3b8'
+                                    }}>
+                                        {aiInsights.sentiment || 'Neutral'}
+                                    </div>
+                                </div>
+
+                                {aiInsights.keyPoints && aiInsights.keyPoints.length > 0 && (
+                                    <div>
+                                        <div style={{ color: '#64748b', fontSize: '0.75rem', marginBottom: '4px' }}>Key Points</div>
+                                        <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.875rem' }}>
+                                            {aiInsights.keyPoints.map((point, i) => (
+                                                <li key={i} style={{ marginBottom: '4px' }}>{point}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

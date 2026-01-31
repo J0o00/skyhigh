@@ -357,6 +357,34 @@ router.put('/:id/feedback', async (req, res) => {
 });
 
 /**
+ * POST /api/customers/:id/intelligence
+ * Generate AI-powered customer intelligence profile
+ */
+router.post('/:id/intelligence', async (req, res) => {
+    try {
+        const { getCustomerIntelligence } = require('../services/customerIntelligence');
+        const { forceRefresh } = req.body;
+
+        const profile = await getCustomerIntelligence(req.params.id, forceRefresh);
+
+        if (!profile) {
+            return res.status(400).json({
+                success: false,
+                error: 'Could not generate intelligence profile. Check AI configuration.'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: profile
+        });
+    } catch (error) {
+        console.error('Error generating intelligence:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
  * GET /api/customers/:id/assist/:channel
  * Get channel-specific agent assistance
  */

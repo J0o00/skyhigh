@@ -34,7 +34,8 @@ function CustomerWebRTCCall() {
         startCall,
         endCall,
         toggleMute,
-        remoteAudioRef
+        remoteAudioRef,
+        socket // Get socket instance
     } = useWebRTC({
         sessionId,
         role: 'customer',
@@ -56,6 +57,16 @@ function CustomerWebRTCCall() {
                 ...entry,
                 speaker: 'customer'
             }]);
+
+            // Emit to server for real-time AI processing
+            if (socket && sessionId) {
+                socket.emit('webrtc:transcript-chunk', {
+                    sessionId,
+                    text: entry.text,
+                    speaker: 'customer',
+                    timestamp: new Date()
+                });
+            }
         }
     });
 
@@ -64,45 +75,11 @@ function CustomerWebRTCCall() {
         try {
             setStatus('requesting');
 
-            // Get available agents - need to use User collection to match login IDs
-            // Fetch users with role='agent' from auth/agents endpoint
-            let agentId = null;
-
-            try {
-                // First try to get users with agent role
-                const usersRes = await api.get('/auth/agents');
-                const agentUsers = usersRes.data?.data || [];
-                const availableAgent = agentUsers.find(a => a.isActive);
-                if (availableAgent) {
-                    agentId = availableAgent._id;
-                    console.log('Found agent user:', availableAgent.name, agentId);
-                }
-            } catch (err) {
-                console.log('Falling back to agents endpoint');
-            }
-
-            // Fallback: use agents endpoint (less reliable for ID matching)
-            if (!agentId) {
-                const agentsRes = await api.get('/agents');
-                const agents = agentsRes.data?.data || [];
-                const availableAgent = agents.find(a => a.isActive);
-                if (availableAgent) {
-                    agentId = availableAgent._id;
-                }
-            }
-
-            if (!agentId) {
-                alert('No agents available. Please try again later.');
-                setStatus('idle');
-                return;
-            }
-
-            // Create WebRTC session with caller name
+            // Create WebRTC session with caller name - broadcast to all agents
             const res = await api.post('/webrtc/sessions', {
                 customerUserId: user._id,
                 callerName: user.name || user.email || 'Unknown Caller',
-                callerPhone: user.phone,
-                agentId: agentId
+                callerPhone: user.phone
             });
 
             if (res.data.success) {

@@ -28,6 +28,12 @@ const sentimentScores = {
 /**
  * Process transcript and extract insights
  */
+const { generateCallInsights, isConfigured: isAIConfigured } = require('./aiService');
+
+/**
+ * Process transcript and extract insights
+ * Uses Gemini AI if available, otherwise falls back to rule-based extraction
+ */
 async function processTranscript(transcript, session) {
     // Combine all text for analysis
     const customerMessages = transcript
@@ -42,26 +48,50 @@ async function processTranscript(transcript, session) {
 
     const allText = transcript.map(t => t.text).join(' ').toLowerCase();
 
-    // Extract keywords
-    const keywords = extractKeywords(allText);
+    // Default fallback values (rule-based)
+    let keywords = extractKeywords(allText);
+    let intentResult = detectIntentFromText(customerMessages);
+    let sentiment = analyzeSentiment(allText);
+    let summary = generateSummary(transcript, intentResult, sentiment, keywords);
+    let outcome = determineOutcome(intentResult, sentiment, keywords);
+    let aiKeyPoints = [];
+    let actionItems = [];
 
-    // Detect intent from customer messages
-    const intentResult = detectIntentFromText(customerMessages);
+    // Try AI generation if configured
+    if (isAIConfigured()) {
+        console.log('🤖 Generating AI insights for call...');
+        const aiInsights = await generateCallInsights(transcript, session.customer);
 
-    // Analyze sentiment
-    const sentiment = analyzeSentiment(allText);
-
-    // Generate summary
-    const summary = generateSummary(transcript, intentResult, sentiment, keywords);
-
-    // Determine outcome based on analysis
-    const outcome = determineOutcome(intentResult, sentiment, keywords);
+        if (aiInsights) {
+            console.log('✨ AI Insights generated successfully');
+            summary = aiInsights.summary || summary;
+            intentResult = {
+                intent: aiInsights.intent?.toLowerCase() || intentResult.intent,
+                confidence: 90
+            };
+            if (aiInsights.sentiment) {
+                sentiment = {
+                    label: aiInsights.sentiment.toLowerCase(),
+                    score: aiInsights.sentimentScore || sentiment.score
+                };
+            }
+            if (aiInsights.keyPoints && Array.isArray(aiInsights.keyPoints)) {
+                aiKeyPoints = aiInsights.keyPoints;
+                // Merge AI key points into keywords for backward compatibility
+                keywords = [...new Set([...keywords, ...aiInsights.keyPoints])];
+            }
+            if (aiInsights.outcome) outcome = aiInsights.outcome.toLowerCase();
+            if (aiInsights.actionItems) actionItems = aiInsights.actionItems;
+        }
+    }
 
     return {
         summary,
         intent: intentResult.intent,
         intentConfidence: intentResult.confidence,
-        keywords,
+        keywords, // Contains regex keywords + AI key points
+        keyPoints: aiKeyPoints, // Specific AI key points
+        actionItems,
         sentiment: sentiment.label,
         sentimentScore: sentiment.score,
         outcome,
