@@ -15,6 +15,8 @@ export default defineConfig({
                 target: 'http://localhost:5000',
                 ws: true
             }
-        }
+        },
+        // Fix 404 on refresh for client-side routes
+        historyApiFallback: true
     }
 })
