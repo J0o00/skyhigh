@@ -97,9 +97,11 @@ function CustomerWebRTCCall() {
                 return;
             }
 
-            // Create WebRTC session
+            // Create WebRTC session with caller name
             const res = await api.post('/webrtc/sessions', {
                 customerUserId: user._id,
+                callerName: user.name || user.email || 'Unknown Caller',
+                callerPhone: user.phone,
                 agentId: agentId
             });
 

@@ -31,6 +31,7 @@ function AgentWebRTCCall() {
     const [callDuration, setCallDuration] = useState(0);
     const [transcript, setTranscript] = useState([]);
     const [customer, setCustomer] = useState(incomingSession?.customer || null);
+    const [callerName, setCallerName] = useState(incomingSession?.callerName || null);
     const [summary, setSummary] = useState(null);
     const [pendingCalls, setPendingCalls] = useState([]);
 
@@ -120,6 +121,7 @@ function AgentWebRTCCall() {
         console.log('📞 Agent accepting call:', session.sessionId);
         setSessionId(session.sessionId);
         setCustomer(session.customer);
+        setCallerName(session.callerName || session.customer?.name || 'Unknown Caller');
         setStatus('connecting');
         // Remove from pending list
         setPendingCalls(prev => prev.filter(c => c.sessionId !== session.sessionId));
@@ -279,7 +281,12 @@ function AgentWebRTCCall() {
                                                         📞 Incoming Call
                                                     </div>
                                                     <div style={{ color: '#94a3b8', fontSize: '0.875rem' }}>
-                                                        {call.customer?.name || 'Unknown Customer'}
+                                                        {call.callerName || call.customer?.name || 'Unknown Caller'}
+                                                        {call.callerPhone && (
+                                                            <span style={{ marginLeft: '8px', opacity: 0.7 }}>
+                                                                📱 {call.callerPhone}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '12px' }}>
@@ -353,7 +360,7 @@ function AgentWebRTCCall() {
                                     background: '#10b981',
                                     animation: 'pulse 2s infinite'
                                 }} />
-                                <span style={{ fontWeight: 500 }}>On Call with Customer</span>
+                                <span style={{ fontWeight: 500 }}>On Call with {callerName || customer?.name || 'Customer'}</span>
                                 <span style={{ color: '#94a3b8' }}>{formatDuration(callDuration)}</span>
                                 <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; }}`}</style>
                             </div>

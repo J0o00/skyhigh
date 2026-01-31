@@ -18,7 +18,7 @@ const webrtcSessions = new Map();
  */
 router.post('/sessions', async (req, res) => {
     try {
-        const { customerId, agentId, customerUserId } = req.body;
+        const { customerId, agentId, customerUserId, callerName, callerPhone } = req.body;
 
         if (!agentId) {
             return res.status(400).json({
@@ -39,6 +39,8 @@ router.post('/sessions', async (req, res) => {
             sessionId,
             customerId: customerId || null,
             customerUserId: customerUserId || null,
+            callerName: callerName || 'Unknown Caller',
+            callerPhone: callerPhone || null,
             agentId,
             customer,
             status: 'pending', // pending, connected, ended
@@ -52,13 +54,15 @@ router.post('/sessions', async (req, res) => {
 
         webrtcSessions.set(sessionId, session);
 
-        // Notify agent of incoming call request
+        // Notify agent of incoming call request with caller name
         const io = req.app.get('io');
         if (io) {
             io.to(`agent_${agentId}`).emit('webrtc:call-request', {
                 sessionId,
                 customer,
                 customerUserId,
+                callerName: callerName || 'Unknown Caller',
+                callerPhone,
                 timestamp: new Date()
             });
         }
