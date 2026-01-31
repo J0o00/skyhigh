@@ -9,14 +9,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function AdminLogin() {
+    const [isRegister, setIsRegister] = useState(false);
     const [formData, setFormData] = useState({
+        name: '',
         email: '',
         password: ''
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, register } = useAuth();
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -29,13 +31,20 @@ function AdminLogin() {
         setError('');
 
         try {
-            if (!formData.email || !formData.password) {
-                throw new Error('Please enter email and password');
+            if (isRegister) {
+                if (!formData.name || !formData.email || !formData.password) {
+                    throw new Error('Please fill all required fields');
+                }
+                await register(formData.name, formData.email, '', formData.password, 'admin');
+            } else {
+                if (!formData.email || !formData.password) {
+                    throw new Error('Please enter email and password');
+                }
+                await login(formData.email, formData.password, 'admin');
             }
-            await login(formData.email, formData.password, 'admin');
             navigate('/admin/dashboard');
         } catch (err) {
-            setError(err.response?.data?.error || err.message || 'Login failed');
+            setError(err.response?.data?.error || err.message || 'Authentication failed');
         } finally {
             setLoading(false);
         }
@@ -67,15 +76,30 @@ function AdminLogin() {
                             ⚙️
                         </div>
                         <h1 className="text-3xl font-nasalization text-white mb-2 tracking-wide">
-                            Admin Portal
+                            {isRegister ? 'Create Account' : 'Admin Portal'}
                         </h1>
                         <p className="text-gray-400 text-sm font-medium tracking-wide">
-                            Authorized Access Only
+                            {isRegister ? 'New Administrator Registration' : 'Authorized Access Only'}
                         </p>
                     </div>
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
+                        {isRegister && (
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Full Name</label>
+                                <div className="relative group">
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:outline-none focus:bg-white/10 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all font-medium"
+                                        placeholder="Admin Name"
+                                        value={formData.name}
+                                        onChange={(e) => handleChange('name', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Email Address</label>
                             <div className="relative group">
@@ -118,10 +142,26 @@ function AdminLogin() {
                                     ? 'bg-gray-800 cursor-not-allowed text-gray-500'
                                     : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:shadow-[0_0_30px_rgba(245,158,11,0.4)]'}`}
                         >
-                            <span className="relative z-10">{loading ? 'Verifying...' : 'Launch Console'}</span>
+                            <span className="relative z-10">{loading ? 'Processing...' : (isRegister ? 'Create Account' : 'Launch Console')}</span>
                             <div className="absolute inset-0 bg-white/20 translate-y-full hover:translate-y-0 transition-transform duration-300"></div>
                         </button>
                     </form>
+
+                    {/* Toggle */}
+                    <div className="mt-8 text-center relative z-10">
+                        <p className="text-gray-400 text-xs font-medium">
+                            {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
+                            <button
+                                onClick={() => {
+                                    setIsRegister(!isRegister);
+                                    setError('');
+                                }}
+                                className="text-amber-400 font-bold hover:text-white transition-colors ml-1 focus:outline-none uppercase tracking-wider text-[10px]"
+                            >
+                                {isRegister ? 'Sign In' : 'Sign Up'}
+                            </button>
+                        </p>
+                    </div>
                 </div>
 
                 <div className="mt-8 text-center">

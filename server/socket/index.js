@@ -257,7 +257,58 @@ function initializeSocket(io) {
          */
         // Maximum transcript entries to prevent memory issues
         const MAX_TRANSCRIPT_ENTRIES = 500;
-        
+
+        // Handle audio chunks for Whisper transcription
+        socket.on('webrtc:audio-chunk', async (data) => {
+            const { audio, timestamp } = data;
+            const sessionId = Array.from(socket.rooms).find(room => room.startsWith('webrtc_'));
+
+            if (!sessionId || !audio) {
+                return;
+            }
+
+            try {
+                // Get Whisper service
+                const { transcribeAudio, checkWhisperAvailability } = require('../services/whisperService');
+
+                // Check if Whisper is available
+                const whisperAvailable = await checkWhisperAvailability();
+
+                if (whisperAvailable) {
+                    // Convert ArrayBuffer to Buffer
+                    const audioBuffer = Buffer.from(audio);
+
+                    // Transcribe with Whisper
+                    const result = await transcribeAudio(audioBuffer, 'webm');
+
+                    if (result.success && result.text.trim()) {
+                        const transcriptData = {
+                            text: result.text,
+                            speaker: 'agent', // Determine from socketId or session
+                            timestamp: timestamp || Date.now()
+                        };
+
+                        // Broadcast transcription to all participants
+                        io.to(sessionId).emit('webrtc:transcription', transcriptData);
+
+                        // Also trigger the existing transcript processing logic
+                        socket.emit('webrtc:transcript-chunk', {
+                            sessionId: sessionId.replace('webrtc_', ''),
+                            ...transcriptData
+                        });
+
+                        console.log(`🎤 Whisper transcription: "${result.text}"`);
+                    }
+                } else {
+                    console.warn('⚠️ Whisper not available, falling back to client-side speech recognition');
+                }
+            } catch (error) {
+                console.error('❌ Whisper transcription error:', error.message);
+                // Silently fail - client will use Web Speech API as fallback
+            }
+        });
+
+        // Handle transcript chunks (existing handler - for Web Speech API fallback)
         socket.on('webrtc:transcript-chunk', async (data) => {
             const { sessionId, text, speaker, timestamp } = data;
 

@@ -19,6 +19,6 @@ export default defineConfig({
         },
         // Fix 404 on refresh for client-side routes
         historyApiFallback: true,
-        allowedHosts: ['nest-necessity-families-accept.trycloudflare.com', '.trycloudflare.com', '.ngrok-free.dev', 'localhost']
+        allowedHosts: true
     }
 })

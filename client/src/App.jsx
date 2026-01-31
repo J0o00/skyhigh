@@ -27,6 +27,9 @@ import AgentWebRTCCall from './pages/AgentWebRTCCall';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 
+// Shared Pages
+import ConversationViewer from './pages/ConversationViewer';
+
 import Background from './components/ui/Background';
 
 function App() {
@@ -143,6 +146,11 @@ function App() {
                         <AgentWebRTCCall />
                     </ProtectedRoute>
                 } />
+                <Route path="/agent/conversations" element={
+                    <ProtectedRoute allowedRoles={['agent']}>
+                        <ConversationViewer />
+                    </ProtectedRoute>
+                } />
 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={
@@ -153,6 +161,11 @@ function App() {
                 <Route path="/admin/dashboard" element={
                     <ProtectedRoute allowedRoles={['admin']}>
                         <AdminDashboard />
+                    </ProtectedRoute>
+                } />
+                <Route path="/admin/conversations" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                        <ConversationViewer />
                     </ProtectedRoute>
                 } />
 

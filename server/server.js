@@ -128,6 +128,9 @@ app.use('/api/auth', routes.auth);
 app.use('/api/client', routes.client);
 app.use('/api/agent', routes.agentRoutes);
 app.use('/api/webrtc', routes.webrtc);
+app.use('/api/conversations', routes.conversations); // Conversation retrieval
+app.use('/api/audio', require('./routes/audioRoutes')); // Whisper transcription
+
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -228,12 +231,16 @@ async function startServer() {
         await connectDB();
 
         // Start listening
-        server.listen(PORT, () => {
+        server.listen(PORT, async () => {
             // Initialize IMAP email service
             const imapStatus = getImapStatus();
             if (imapStatus.configured) {
                 initializeImap(io);
             }
+
+            // Initialize Whisper service
+            const { initializeWhisper } = require('./services/whisperService');
+            const whisperAvailable = await initializeWhisper();
 
             console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
@@ -244,6 +251,7 @@ async function startServer() {
 ║   WebSocket:   ws://localhost:${PORT}                           ║
 ║   Health:      http://localhost:${PORT}/health                  ║
 ║   IMAP Email:  ${imapStatus.configured ? '✓ Enabled' : '✗ Not configured'}                                   ║
+║   Whisper STT: ${whisperAvailable ? '✓ Enabled' : '✗ Not available (fallback: Web Speech)'}            ║
 ║                                                               ║
 ║   Environment: ${process.env.NODE_ENV || 'development'}                              ║
 ║                                                               ║

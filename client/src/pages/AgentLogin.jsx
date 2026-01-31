@@ -9,14 +9,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function AgentLogin() {
+    const [isRegister, setIsRegister] = useState(false);
     const [formData, setFormData] = useState({
+        name: '',
         email: '',
         password: ''
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, register } = useAuth();
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -29,13 +31,20 @@ function AgentLogin() {
         setError('');
 
         try {
-            if (!formData.email || !formData.password) {
-                throw new Error('Please enter email and password');
+            if (isRegister) {
+                if (!formData.name || !formData.email || !formData.password) {
+                    throw new Error('Please fill all required fields');
+                }
+                await register(formData.name, formData.email, '', formData.password, 'agent');
+            } else {
+                if (!formData.email || !formData.password) {
+                    throw new Error('Please enter email and password');
+                }
+                await login(formData.email, formData.password, 'agent');
             }
-            await login(formData.email, formData.password, 'agent');
             navigate('/agent/dashboard');
         } catch (err) {
-            setError(err.response?.data?.error || err.message || 'Login failed');
+            setError(err.response?.data?.error || err.message || 'Authentication failed');
         } finally {
             setLoading(false);
         }
@@ -67,15 +76,30 @@ function AgentLogin() {
                             🎧
                         </div>
                         <h1 className="text-3xl font-nasalization text-white mb-2 tracking-wide">
-                            Agent Workspace
+                            {isRegister ? 'Create Account' : 'Agent Workspace'}
                         </h1>
                         <p className="text-gray-400 text-sm font-medium tracking-wide">
-                            Customer Support Access
+                            {isRegister ? 'New Agent Registration' : 'Customer Support Access'}
                         </p>
                     </div>
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
+                        {isRegister && (
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Full Name</label>
+                                <div className="relative group">
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:outline-none focus:bg-white/10 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-medium"
+                                        placeholder="Agent Name"
+                                        value={formData.name}
+                                        onChange={(e) => handleChange('name', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Email Address</label>
                             <div className="relative group">
@@ -116,14 +140,24 @@ function AgentLogin() {
                                     ? 'bg-gray-800 cursor-not-allowed text-gray-500'
                                     : 'bg-gradient-to-r from-purple-500 to-violet-600 text-white hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]'}`}
                         >
-                            <span className="relative z-10">{loading ? 'Connecting...' : 'Enter Workspace'}</span>
+                            <span className="relative z-10">{loading ? 'Processing...' : (isRegister ? 'Create Account' : 'Enter Workspace')}</span>
                             <div className="absolute inset-0 bg-white/20 translate-y-full hover:translate-y-0 transition-transform duration-300"></div>
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center">
-                        <p className="text-[10px] text-gray-600 font-mono uppercase tracking-[0.2em] opacity-50">
-                            Restricted to authorized personnel
+                    {/* Toggle */}
+                    <div className="mt-8 text-center relative z-10">
+                        <p className="text-gray-400 text-xs font-medium">
+                            {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
+                            <button
+                                onClick={() => {
+                                    setIsRegister(!isRegister);
+                                    setError('');
+                                }}
+                                className="text-purple-400 font-bold hover:text-white transition-colors ml-1 focus:outline-none uppercase tracking-wider text-[10px]"
+                            >
+                                {isRegister ? 'Sign In' : 'Sign Up'}
+                            </button>
                         </p>
                     </div>
                 </div>

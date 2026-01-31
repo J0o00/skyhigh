@@ -2,13 +2,14 @@
  * Transcript Processor Service
  * 
  * Processes call transcripts for:
- * - Intent detection
+ * - Intent detection (Gemini AI + BART-MNLI - both FREE)
  * - Keyword extraction
  * - Sentiment analysis
  * - Summary generation
  */
 
 const { detectIntent } = require('./intentDetection');
+const { classifyAll: classifyWithBART, isConfigured: isBARTConfigured } = require('./intentClassifier');
 
 // Keyword patterns for extraction
 const keywordPatterns = {
@@ -56,25 +57,54 @@ async function processTranscript(transcript, session) {
     let outcome = determineOutcome(intentResult, sentiment, keywords);
     let aiKeyPoints = [];
     let actionItems = [];
+    let urgency = 'normal';
 
-    // Try AI generation if configured
+    // Step 1: Try BART-MNLI classification (FREE - Hugging Face API)
+    if (isBARTConfigured()) {
+        console.log('🎯 Using BART-MNLI for intent classification...');
+        const bartClassification = await classifyWithBART(customerMessages);
+
+        if (bartClassification) {
+            console.log('✨ BART-MNLI classification successful:', bartClassification.intent);
+            // BART is very accurate for intent, use it as primary
+            intentResult = {
+                intent: bartClassification.intent,
+                confidence: bartClassification.intentConfidence
+            };
+            sentiment = {
+                label: bartClassification.sentiment,
+                score: bartClassification.sentimentScore
+            };
+            urgency = bartClassification.urgency;
+        }
+    }
+
+    // Step 2: Try Gemini AI generation (FREE - Google API)
     if (isAIConfigured()) {
-        console.log('🤖 Generating AI insights for call...');
+        console.log('🤖 Generating AI insights with Gemini...');
         const aiInsights = await generateCallInsights(transcript, session.customer);
 
         if (aiInsights) {
-            console.log('✨ AI Insights generated successfully');
+            console.log('✨ Gemini insights generated successfully');
+            // Use Gemini for summary and key points (its strength)
             summary = aiInsights.summary || summary;
-            intentResult = {
-                intent: aiInsights.intent?.toLowerCase() || intentResult.intent,
-                confidence: 90
-            };
-            if (aiInsights.sentiment) {
+
+            // If BART didn't run, use Gemini's intent
+            if (!isBARTConfigured() && aiInsights.intent) {
+                intentResult = {
+                    intent: aiInsights.intent.toLowerCase(),
+                    confidence: 90
+                };
+            }
+
+            // If BART didn't run, use Gemini's sentiment
+            if (!isBARTConfigured() && aiInsights.sentiment) {
                 sentiment = {
                     label: aiInsights.sentiment.toLowerCase(),
                     score: aiInsights.sentimentScore || sentiment.score
                 };
             }
+
             if (aiInsights.keyPoints && Array.isArray(aiInsights.keyPoints)) {
                 aiKeyPoints = aiInsights.keyPoints;
                 // Merge AI key points into keywords for backward compatibility
@@ -101,6 +131,7 @@ async function processTranscript(transcript, session) {
         actionItems,
         sentiment: sentiment.label,
         sentimentScore: sentiment.score,
+        urgency, // NEW: urgency level from BART-MNLI
         outcome,
         messageCount: transcript.length,
         // customerMessages: transcript.filter(t => t.speaker === 'customer').length,

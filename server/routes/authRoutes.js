@@ -15,88 +15,88 @@ const { validateEmail, validatePassword, sanitizeBody } = require('../middleware
  * POST /api/auth/register
  * Register a new user (client, agent, or admin)
  */
-router.post('/register', 
+router.post('/register',
     sanitizeBody(['name', 'email']),
     validateEmail('email', true),
     validatePassword('password'),
     async (req, res) => {
-    try {
-        const { name, email, phone, password, role = 'client' } = req.body;
+        try {
+            const { name, email, phone, password, role = 'client' } = req.body;
 
-        // Validate required fields
-        if (!name || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                error: 'Name, email, and password are required'
-            });
-        }
+            // Validate required fields
+            if (!name || !email || !password) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Name, email, and password are required'
+                });
+            }
 
-        // Check if user already exists
-        console.log('[REGISTER] Checking for existing user with email:', email.toLowerCase());
-        const existingUser = await User.findOne({ email: email.toLowerCase() });
-        console.log('[REGISTER] Found existing user:', existingUser ? existingUser.email : 'NONE');
-        if (existingUser) {
-            return res.status(400).json({
-                success: false,
-                error: 'An account with this email already exists'
-            });
-        }
+            // Check if user already exists
+            console.log('[REGISTER] Checking for existing user with email:', email.toLowerCase());
+            const existingUser = await User.findOne({ email: email.toLowerCase() });
+            console.log('[REGISTER] Found existing user:', existingUser ? existingUser.email : 'NONE');
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'An account with this email already exists'
+                });
+            }
 
-        // Validate role
-        const allowedRoles = ['client', 'agent', 'admin'];
-        if (!allowedRoles.includes(role)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid role. Must be client, agent, or admin'
-            });
-        }
+            // Validate role
+            const allowedRoles = ['client', 'agent', 'admin'];
+            if (!allowedRoles.includes(role)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid role. Must be client, agent, or admin'
+                });
+            }
 
-        // Create user
-        const user = new User({
-            name,
-            email: email.toLowerCase(),
-            phone,
-            password,
-            role
-        });
-
-        // For clients, also create a Customer profile
-        if (role === 'client') {
-            const customer = new Customer({
+            // Create user
+            const user = new User({
                 name,
                 email: email.toLowerCase(),
-                phone: phone || undefined, // Allow empty phone
-                currentIntent: 'inquiry',
-                potentialLevel: 'medium',
-                potentialScore: 50
+                phone: phone || undefined,
+                password,
+                role
             });
-            await customer.save();
-            user.customerId = customer._id;
-        }
 
-        await user.save();
-
-        res.status(201).json({
-            success: true,
-            data: {
-                user: user.toSafeObject(),
-                message: 'Account created successfully'
+            // For clients, also create a Customer profile
+            if (role === 'client') {
+                const customer = new Customer({
+                    name,
+                    email: email.toLowerCase(),
+                    phone: phone || undefined, // Allow empty phone
+                    currentIntent: 'inquiry',
+                    potentialLevel: 'medium',
+                    potentialScore: 50
+                });
+                await customer.save();
+                user.customerId = customer._id;
             }
-        });
-    } catch (error) {
-        console.error('Registration error:', error);
 
-        // Handle duplicate key error
-        if (error.code === 11000) {
-            return res.status(400).json({
-                success: false,
-                error: 'An account with this email already exists'
+            await user.save();
+
+            res.status(201).json({
+                success: true,
+                data: {
+                    user: user.toSafeObject(),
+                    message: 'Account created successfully'
+                }
             });
-        }
+        } catch (error) {
+            console.error('Registration error:', error);
 
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
+            // Handle duplicate key error
+            if (error.code === 11000) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'An account with this email already exists'
+                });
+            }
+
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
 
 /**
  * POST /api/auth/login
