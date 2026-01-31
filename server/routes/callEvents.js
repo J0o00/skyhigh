@@ -12,8 +12,30 @@ const { detectIntent, shouldUpdateIntent } = require('../services/intentDetectio
 const { calculatePotentialScore } = require('../services/potentialScoring');
 const { getAgentAssist } = require('../services/agentAssist');
 
+/**
+ * Escape special regex characters to prevent ReDoS attacks
+ */
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Store for active calls (in production, use Redis)
 const activeCalls = new Map();
+
+// Maximum age for active calls before auto-cleanup (2 hours)
+const MAX_CALL_AGE_MS = 2 * 60 * 60 * 1000;
+
+// Periodic cleanup of stale calls to prevent memory leak
+setInterval(() => {
+    const now = Date.now();
+    for (const [callId, callData] of activeCalls) {
+        const callAge = now - new Date(callData.startTime).getTime();
+        if (callAge > MAX_CALL_AGE_MS) {
+            console.log(`Cleaning up stale call: ${callId} (age: ${Math.floor(callAge / 60000)} minutes)`);
+            activeCalls.delete(callId);
+        }
+    }
+}, 15 * 60 * 1000); // Run cleanup every 15 minutes
 
 /**
  * POST /api/call-event
@@ -40,10 +62,12 @@ router.post('/', async (req, res) => {
 
         // Normalize phone number
         const normalizedPhone = caller_number.replace(/[\s-]/g, '');
+        // Escape regex special characters to prevent ReDoS attacks
+        const escapedPhone = escapeRegex(normalizedPhone.replace(/^\+/, ''));
 
         // Look up customer by phone
         let customer = await Customer.findOne({
-            phone: { $regex: normalizedPhone.replace(/^\+/, ''), $options: 'i' }
+            phone: { $regex: escapedPhone, $options: 'i' }
         });
 
         let isNewCustomer = false;

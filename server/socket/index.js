@@ -255,8 +255,16 @@ function initializeSocket(io) {
         /**
          * Real-time Transcript Handling & AI Analysis
          */
+        // Maximum transcript entries to prevent memory issues
+        const MAX_TRANSCRIPT_ENTRIES = 500;
+        
         socket.on('webrtc:transcript-chunk', async (data) => {
             const { sessionId, text, speaker, timestamp } = data;
+
+            // Validate input
+            if (!sessionId || !text || !speaker) {
+                return;
+            }
 
             // 1. Broadcast to other participants (e.g. Agent sees Customer text)
             socket.to(`webrtc_${sessionId}`).emit('webrtc:transcript-chunk', {
@@ -277,6 +285,16 @@ function initializeSocket(io) {
                     timestamp: new Date(timestamp)
                 });
 
+                // Limit transcript size to prevent memory leak
+                if (session.transcript.length > MAX_TRANSCRIPT_ENTRIES) {
+                    // Keep only the most recent entries
+                    session.transcript = session.transcript.slice(-MAX_TRANSCRIPT_ENTRIES);
+                    // Adjust the lastAiProcessedIndex
+                    if (session.lastAiProcessedIndex) {
+                        session.lastAiProcessedIndex = Math.max(0, session.lastAiProcessedIndex - (session.transcript.length - MAX_TRANSCRIPT_ENTRIES));
+                    }
+                }
+
                 // 3. Trigger AI Analysis periodically
                 // Check if we have enough new content (e.g., every 5 messages or ~50 words)
                 const transcriptLength = session.transcript.length;
@@ -295,7 +313,7 @@ function initializeSocket(io) {
                                         insights,
                                         timestamp: new Date()
                                     });
-                                    console.log(`✨ Emitted AI insights for session ${sessionId}`);
+                                    console.log(`AI insights emitted for session ${sessionId}`);
                                 }
                             })
                             .catch(err => console.error('AI Processing Error:', err));

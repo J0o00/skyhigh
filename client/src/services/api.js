@@ -6,7 +6,7 @@
 
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance
 export const api = axios.create({
@@ -14,6 +14,22 @@ export const api = axios.create({
     headers: {
         'Content-Type': 'application/json'
     }
+});
+
+// Request interceptor for auth headers
+api.interceptors.request.use(config => {
+    try {
+        const userStr = localStorage.getItem('conversaiq_user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            if (user && user._id) {
+                config.headers['x-user-id'] = user._id;
+            }
+        }
+    } catch (e) {
+        // Ignore parsing error
+    }
+    return config;
 });
 
 // Response interceptor for error handling

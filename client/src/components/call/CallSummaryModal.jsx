@@ -75,6 +75,11 @@ function CallSummaryModal({ callData, onClose }) {
             return;
         }
 
+        if (!agent?._id) {
+            alert('Agent not authenticated. Please log in again.');
+            return;
+        }
+
         setLoading(true);
         try {
             await callApi.submitSummary(callId, {
@@ -187,7 +192,7 @@ function CallSummaryModal({ callData, onClose }) {
                                     placeholder="Add keyword..."
                                     value={newKeyword}
                                     onChange={(e) => setNewKeyword(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddKeyword())}
+                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddKeyword())}
                                     style={{ flex: 1 }}
                                 />
                                 <button
@@ -223,7 +228,7 @@ function CallSummaryModal({ callData, onClose }) {
                                     placeholder="Add objection..."
                                     value={newObjection}
                                     onChange={(e) => setNewObjection(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddObjection())}
+                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddObjection())}
                                     style={{ flex: 1 }}
                                 />
                                 <button
@@ -259,7 +264,7 @@ function CallSummaryModal({ callData, onClose }) {
                                     placeholder="Important point for next interaction..."
                                     value={newPoint}
                                     onChange={(e) => setNewPoint(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddPoint())}
+                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddPoint())}
                                     style={{ flex: 1 }}
                                 />
                                 <button

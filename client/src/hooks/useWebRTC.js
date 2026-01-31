@@ -8,7 +8,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
 
 // Google STUN servers (reliable for most use cases)
 const ICE_SERVERS = {
@@ -36,6 +36,19 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
     const localStreamRef = useRef(null);
     const remoteAudioRef = useRef(null);
     const pendingCandidatesRef = useRef([]);
+
+    // Use refs to avoid stale closures in cleanup and event handlers
+    const activeSessionIdRef = useRef(activeSessionId);
+    const roleRef = useRef(role);
+
+    // Update refs when values change
+    useEffect(() => {
+        activeSessionIdRef.current = activeSessionId;
+    }, [activeSessionId]);
+
+    useEffect(() => {
+        roleRef.current = role;
+    }, [role]);
 
     // Update session ID when prop changes
     useEffect(() => {
@@ -174,30 +187,42 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
 
         // Handle incoming offer (agent receives this)
         socketRef.current.on('webrtc:offer', async ({ offer, from }) => {
-            console.log('📩 Received offer from:', from);
+            console.log('Received offer from:', from);
             try {
-                if (peerConnectionRef.current) {
-                    await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer));
-                    console.log('📩 Set remote description');
+                // Verify peer connection exists before proceeding
+                if (!peerConnectionRef.current) {
+                    console.warn('No peer connection available to handle offer');
+                    return;
+                }
 
-                    // Apply any pending ICE candidates
-                    for (const candidate of pendingCandidatesRef.current) {
+                await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer));
+                console.log('Set remote description');
+
+                // Apply any pending ICE candidates
+                for (const candidate of pendingCandidatesRef.current) {
+                    if (peerConnectionRef.current) {
                         await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
                     }
-                    pendingCandidatesRef.current = [];
-
-                    const answer = await peerConnectionRef.current.createAnswer();
-                    await peerConnectionRef.current.setLocalDescription(answer);
-                    console.log('📤 Sending answer');
-
-                    socketRef.current.emit('webrtc:answer', {
-                        sessionId: currentSessionId,
-                        answer,
-                        from: role
-                    });
                 }
+                pendingCandidatesRef.current = [];
+
+                if (!peerConnectionRef.current) {
+                    console.warn('Peer connection closed during offer handling');
+                    return;
+                }
+
+                const answer = await peerConnectionRef.current.createAnswer();
+                await peerConnectionRef.current.setLocalDescription(answer);
+                console.log('Sending answer');
+
+                socketRef.current?.emit('webrtc:answer', {
+                    sessionId: currentSessionId,
+                    answer,
+                    from: role
+                });
             } catch (err) {
                 console.error('Error handling offer:', err);
+                setError('Failed to handle incoming call');
             }
         });
 
@@ -327,15 +352,15 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
         setConnectionState('rejected');
     }, [activeSessionId, userId]);
 
-    // End call
+    // End call - use refs to ensure we have the latest values
     const endCall = useCallback(() => {
         socketRef.current?.emit('webrtc:call-end', {
-            sessionId: activeSessionId,
-            endedBy: role
+            sessionId: activeSessionIdRef.current,
+            endedBy: roleRef.current
         });
         cleanup();
         setConnectionState('ended');
-    }, [activeSessionId, role]);
+    }, [cleanup]);
 
     // Toggle mute
     const toggleMute = useCallback(() => {
@@ -348,9 +373,9 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
         }
     }, []);
 
-    // Cleanup resources
+    // Cleanup resources - use refs to avoid stale closures
     const cleanup = useCallback(() => {
-        console.log('🧹 Cleaning up WebRTC resources');
+        console.log('Cleaning up WebRTC resources');
 
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -363,20 +388,34 @@ export function useWebRTC({ sessionId: initialSessionId, role, userId, onConnect
         }
 
         if (socketRef.current) {
-            socketRef.current.emit('webrtc:leave', { sessionId: activeSessionId });
+            // Remove all event listeners before disconnecting to prevent memory leaks
+            socketRef.current.off('connect');
+            socketRef.current.off('webrtc:offer');
+            socketRef.current.off('webrtc:answer');
+            socketRef.current.off('webrtc:ice-candidate');
+            socketRef.current.off('webrtc:peer-joined');
+            socketRef.current.off('webrtc:call-accepted');
+            socketRef.current.off('webrtc:call-rejected');
+            socketRef.current.off('webrtc:call-ended');
+            socketRef.current.off('webrtc:peer-disconnected');
+
+            // Use ref to get current session ID to avoid stale closure
+            if (socketRef.current.connected) {
+                socketRef.current.emit('webrtc:leave', { sessionId: activeSessionIdRef.current });
+            }
             socketRef.current.disconnect();
             socketRef.current = null;
         }
 
         pendingCandidatesRef.current = [];
-    }, [activeSessionId]);
+    }, []); // No dependencies - uses refs instead
 
-    // Cleanup on unmount
+    // Cleanup on unmount - use the cleanup function which uses refs
     useEffect(() => {
         return () => {
             cleanup();
         };
-    }, []);
+    }, [cleanup]);
 
     return {
         connectionState,

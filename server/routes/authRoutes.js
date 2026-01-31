@@ -8,12 +8,18 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Customer = require('../models/Customer');
+const { requireAuth, requireRole, requireAdmin } = require('../middleware/auth');
+const { validateEmail, validatePassword, sanitizeBody } = require('../middleware/validation');
 
 /**
  * POST /api/auth/register
  * Register a new user (client, agent, or admin)
  */
-router.post('/register', async (req, res) => {
+router.post('/register', 
+    sanitizeBody(['name', 'email']),
+    validateEmail('email', true),
+    validatePassword('password'),
+    async (req, res) => {
     try {
         const { name, email, phone, password, role = 'client' } = req.body;
 
@@ -96,7 +102,7 @@ router.post('/register', async (req, res) => {
  * POST /api/auth/login
  * Login user
  */
-router.post('/login', async (req, res) => {
+router.post('/login', validateEmail('email', true), async (req, res) => {
     try {
         const { email, password, role } = req.body;
 
@@ -122,8 +128,9 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Check password
-        if (!user.checkPassword(password)) {
+        // Check password (now async with bcrypt)
+        const isValidPassword = await user.checkPassword(password);
+        if (!isValidPassword) {
             return res.status(401).json({
                 success: false,
                 error: 'Invalid email or password'
@@ -209,8 +216,9 @@ router.get('/me/:userId', async (req, res) => {
 /**
  * GET /api/auth/users
  * Get all users (admin only)
+ * Protected: requires admin authentication
  */
-router.get('/users', async (req, res) => {
+router.get('/users', requireAuth, requireRole('admin'), async (req, res) => {
     try {
         const { role } = req.query;
         const query = {};
@@ -233,8 +241,9 @@ router.get('/users', async (req, res) => {
 /**
  * GET /api/auth/agents
  * Get available agents (users with role=agent) for call routing
+ * Protected: requires agent or admin authentication
  */
-router.get('/agents', async (req, res) => {
+router.get('/agents', requireAuth, requireRole(['agent', 'admin']), async (req, res) => {
     try {
         const agents = await User.find({ role: 'agent', isActive: true })
             .select('-password')

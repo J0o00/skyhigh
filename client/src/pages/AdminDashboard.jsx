@@ -52,7 +52,10 @@ function AdminDashboard() {
             setShowCreateModal(false);
             setNewUser({ name: '', email: '', password: '', role: 'agent' });
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to create user');
+            console.error('Create user error:', err);
+            const msg = err.response?.data?.error || err.message || 'Failed to create user';
+            const details = err.response?.data ? JSON.stringify(err.response.data) : '';
+            setError(msg + (details ? ` (${details})` : ''));
         }
     };
 
@@ -300,6 +303,16 @@ function AdminDashboard() {
                                 />
                             </div>
                             <div className="form-group">
+                                <label className="form-label">Phone (Optional)</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={newUser.phone || ''}
+                                    placeholder="+1234567890"
+                                    onChange={e => setNewUser(p => ({ ...p, phone: e.target.value }))}
+                                />
+                            </div>
+                            <div className="form-group">
                                 <label className="form-label">Password</label>
                                 <input
                                     type="password"
@@ -307,6 +320,9 @@ function AdminDashboard() {
                                     value={newUser.password}
                                     onChange={e => setNewUser(p => ({ ...p, password: e.target.value }))}
                                 />
+                                <small style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                                    Min 4 characters
+                                </small>
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Role</label>

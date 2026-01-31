@@ -36,73 +36,9 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/v1/agents/:id
- * Get agent by ID
- */
-router.get('/:id', async (req, res) => {
-    try {
-        if (req.params.id === 'inbox') {
-            return next(); // Pass to inbox route
-        }
-
-        const agent = await Agent.findById(req.params.id)
-            .select('-password')
-            .lean();
-
-        if (!agent) {
-            return res.apiNotFound('Agent not found');
-        }
-
-        res.apiSuccess({ agent });
-    } catch (err) {
-        res.apiServerError('Failed to fetch agent', err.message);
-    }
-});
-
-/**
- * POST /api/v1/agents
- * Create new agent
- */
-router.post('/', async (req, res) => {
-    try {
-        const { name, email, password, department } = req.body;
-
-        if (!name || !email || !password) {
-            return res.apiBadRequest('Name, email, and password are required');
-        }
-
-        // Check for duplicate
-        const existing = await Agent.findOne({ email: email.toLowerCase() });
-        if (existing) {
-            return res.apiError('Agent with this email already exists', 'DUPLICATE_ENTRY', 409);
-        }
-
-        const agent = new Agent({
-            name,
-            email: email.toLowerCase(),
-            password, // In production, hash this!
-            department: department || 'Support',
-            isActive: true
-        });
-
-        await agent.save();
-
-        // Don't return password
-        const agentData = agent.toObject();
-        delete agentData.password;
-
-        res.apiCreated({ agent: agentData });
-    } catch (err) {
-        if (err.name === 'ValidationError') {
-            return res.apiBadRequest(err.message);
-        }
-        res.apiServerError('Failed to create agent', err.message);
-    }
-});
-
-/**
  * GET /api/v1/agents/inbox
  * Get agent inbox - interactions grouped by customer
+ * NOTE: This route MUST be defined before /:id to avoid route conflicts
  * 
  * Query params:
  * - agentId: filter by assigned agent
@@ -162,6 +98,65 @@ router.get('/inbox', async (req, res) => {
         });
     } catch (err) {
         res.apiServerError('Failed to fetch inbox', err.message);
+    }
+});
+
+/**
+ * POST /api/v1/agents
+ * Create new agent
+ */
+router.post('/', async (req, res) => {
+    try {
+        const { name, email, password, department } = req.body;
+
+        if (!name || !email || !password) {
+            return res.apiBadRequest('Name, email, and password are required');
+        }
+
+        // Check for duplicate
+        const existing = await Agent.findOne({ email: email.toLowerCase() });
+        if (existing) {
+            return res.apiError('Agent with this email already exists', 'DUPLICATE_ENTRY', 409);
+        }
+
+        const agent = new Agent({
+            name,
+            email: email.toLowerCase(),
+            password, // Password will be hashed by pre-save hook in Agent model
+            department: department || 'Support',
+            isActive: true
+        });
+
+        await agent.save();
+
+        // Use toSafeObject to return agent without password
+        res.apiCreated({ agent: agent.toSafeObject() });
+    } catch (err) {
+        if (err.name === 'ValidationError') {
+            return res.apiBadRequest(err.message);
+        }
+        res.apiServerError('Failed to create agent', err.message);
+    }
+});
+
+/**
+ * GET /api/v1/agents/:id
+ * Get agent by ID
+ * NOTE: This route is defined after /inbox to avoid route conflicts
+ */
+router.get('/:id', async (req, res) => {
+    try {
+        const agent = await Agent.findById(req.params.id)
+            .select('-password')
+            .lean();
+
+        if (!agent) {
+            return res.apiNotFound('Agent not found');
+        }
+
+        res.apiSuccess({ agent });
+    } catch (err) {
+        res.apiServerError('Failed to fetch agent', err.message);
     }
 });
 

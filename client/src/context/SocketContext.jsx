@@ -4,13 +4,13 @@
  * Manages WebSocket connection for real-time updates.
  */
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
 const SocketContext = createContext(null);
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
 
 export function SocketProvider({ children }) {
     const [socket, setSocket] = useState(null);
@@ -19,9 +19,21 @@ export function SocketProvider({ children }) {
     const [callEnded, setCallEnded] = useState(null);
     const { user, isAuthenticated } = useAuth();
 
-    // Initialize socket connection
+    // Use refs to avoid stale closures in event handlers
+    const userRef = useRef(user);
+
+    // Update userRef when user changes
     useEffect(() => {
-        if (!isAuthenticated || !user) {
+        userRef.current = user;
+    }, [user]);
+
+    // Initialize socket connection
+    // Only depend on user._id and role to avoid unnecessary reconnections
+    const userId = user?._id;
+    const userRole = user?.role;
+
+    useEffect(() => {
+        if (!isAuthenticated || !userId) {
             return;
         }
 
@@ -32,53 +44,71 @@ export function SocketProvider({ children }) {
             reconnectionDelay: 1000
         });
 
-        socketInstance.on('connect', () => {
-            console.log('🔌 Socket connected');
+        // Event handlers
+        const handleConnect = () => {
+            console.log('Socket connected');
             setIsConnected(true);
 
             // Join agent room (only for agents)
-            if (user.role === 'agent') {
-                socketInstance.emit('agent:join', { agentId: user._id });
+            if (userRole === 'agent') {
+                socketInstance.emit('agent:join', { agentId: userId });
             }
-        });
+        };
 
-        socketInstance.on('disconnect', () => {
-            console.log('🔌 Socket disconnected');
+        const handleDisconnect = () => {
+            console.log('Socket disconnected');
             setIsConnected(false);
-        });
+        };
 
-        socketInstance.on('agent:joined', (data) => {
-            console.log('👤 Joined room:', data.room);
-        });
+        const handleAgentJoined = (data) => {
+            console.log('Joined room:', data.room);
+        };
 
-        // Incoming call notification
-        socketInstance.on('call:incoming', (data) => {
-            console.log('📞 Incoming call:', data);
+        const handleCallIncoming = (data) => {
+            console.log('Incoming call:', data);
             setIncomingCall(data);
-        });
+        };
 
-        // Call ended notification
-        socketInstance.on('call:ended', (data) => {
-            console.log('📞 Call ended:', data);
+        const handleCallEnded = (data) => {
+            console.log('Call ended:', data);
             setCallEnded(data);
             setIncomingCall(null);
-        });
+        };
 
-        // Customer updated
-        socketInstance.on('customer:updated', (data) => {
-            console.log('👤 Customer updated:', data);
+        const handleCustomerUpdated = (data) => {
+            console.log('Customer updated:', data);
             // This could trigger a refresh in relevant components
-        });
+        };
+
+        // Register event listeners
+        socketInstance.on('connect', handleConnect);
+        socketInstance.on('disconnect', handleDisconnect);
+        socketInstance.on('agent:joined', handleAgentJoined);
+        socketInstance.on('call:incoming', handleCallIncoming);
+        socketInstance.on('call:ended', handleCallEnded);
+        socketInstance.on('customer:updated', handleCustomerUpdated);
 
         setSocket(socketInstance);
 
+        // Cleanup: Remove all event listeners before disconnecting
         return () => {
-            if (user.role === 'agent') {
-                socketInstance.emit('agent:leave', { agentId: user._id });
+            // Remove all event listeners to prevent memory leaks
+            socketInstance.off('connect', handleConnect);
+            socketInstance.off('disconnect', handleDisconnect);
+            socketInstance.off('agent:joined', handleAgentJoined);
+            socketInstance.off('call:incoming', handleCallIncoming);
+            socketInstance.off('call:ended', handleCallEnded);
+            socketInstance.off('customer:updated', handleCustomerUpdated);
+
+            // Use ref to safely access current user data during cleanup
+            if (userRef.current?.role === 'agent') {
+                socketInstance.emit('agent:leave', { agentId: userRef.current._id });
             }
             socketInstance.disconnect();
+            setSocket(null);
+            setIsConnected(false);
         };
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated, userId, userRole]);
 
     // Clear incoming call
     const clearIncomingCall = useCallback(() => {

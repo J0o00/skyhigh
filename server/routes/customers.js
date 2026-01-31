@@ -14,6 +14,13 @@ const { getAgentAssist } = require('../services/agentAssist');
 const { getRecommendations } = require('../services/recommendations');
 
 /**
+ * Escape special regex characters to prevent ReDoS attacks
+ */
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * GET /api/customers
  * List all customers with optional filtering
  */
@@ -36,10 +43,12 @@ router.get('/', async (req, res) => {
             query.currentIntent = intent;
         }
         if (search) {
+            // Escape regex special characters to prevent ReDoS attacks
+            const escapedSearch = escapeRegex(search);
             query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { phone: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
+                { name: { $regex: escapedSearch, $options: 'i' } },
+                { phone: { $regex: escapedSearch, $options: 'i' } },
+                { email: { $regex: escapedSearch, $options: 'i' } }
             ];
         }
 
@@ -114,9 +123,11 @@ router.get('/phone/:phone', async (req, res) => {
     try {
         // Normalize phone number (remove spaces, dashes)
         const phone = req.params.phone.replace(/[\s-]/g, '');
+        // Escape regex special characters to prevent ReDoS attacks
+        const escapedPhone = escapeRegex(phone.replace(/^\+/, ''));
 
         const customer = await Customer.findOne({
-            phone: { $regex: phone.replace(/^\+/, ''), $options: 'i' }
+            phone: { $regex: escapedPhone, $options: 'i' }
         }).lean();
 
         if (!customer) {
